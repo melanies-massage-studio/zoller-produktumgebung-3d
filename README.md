@@ -1,0 +1,69 @@
+# Zoller Produktumgebung 3D
+
+Ein begehbarer 3D-Showroom mit **allen 59 Produkten von [zoller.info](https://www.zoller.info/produkte)**, sortiert nach den sieben Themenwelten der Produktübersicht.
+
+**Live:** https://melanies-massage-studio.github.io/zoller-produktumgebung-3d/
+
+## Die Halle
+
+Eine Rundhalle mit zentralem Platz und schwebendem ZOLLER-Symbol. Rund um den Platz liegen sieben zweistufige Bühnen – eine pro Themenwelt – mit Rückwand, Bodenbeschriftung, Wegweiser-Stele und Unterkategorien auf der Stufenkante:
+
+| Nr. | Themenwelt | Produkte |
+|---|---|---|
+| 01 | Einstellen & Messen | 12 – Vertikale/Horizontale Geräte, CNC-Steinbearbeitung, Speziallösungen |
+| 02 | Toolmanagement | 20 – Software & Add-ons, TMS-Softwarepakete, Werkzeuglager, -montage, -transport, Datentransfer |
+| 03 | Prüfen & Messen | 15 – Universal-Messmaschinen, prozessorientiertes Messen, CNC-Steinbearbeitung, Speziallösungen |
+| 04 | Automation | 8 – Werkzeuglogistik, -vorbereitung, -bereitstellung, -inspektion, Laserbeschriftung |
+| 05 | Schrumpftechnik | 2 |
+| 06 | Werkzeugaufnahmen | 1 |
+| 07 | Wuchttechnik | 1 |
+
+Produkte, die zoller.info in mehreren Kategorien zeigt (z. B. »roboBox«, »conDress«), stehen einmal in ihrer Hauptkategorie und tragen im Detail-Panel den Hinweis „Auch zu finden unter …“.
+
+Darstellung je nach Produktart: freigestellte Geräte auf Bodenplatten, Tischgeräte auf Säulen, Software als schwebende Symbole, Produkte ohne freigestelltes Bild auf Präsentationsdisplays, Werkzeugaufnahmen in einer Vitrine.
+
+## Funktionen
+
+- **Orbit-Ansicht**: ziehen, zoomen, verschieben; Klick auf ein Produkt fliegt hin und öffnet die Details
+- **Begehen**: Ego-Perspektive mit WASD/Pfeiltasten, Klick auf den Boden zum Hingehen, Treppenstufen und Kollision
+- **Rundgang**: automatische Tour durch alle Themenwelten und Produkte
+- **Detail-Panel** pro Produkt: Claim, Beschreibung, Highlights, Ausstattung, Modelle, technische Daten, Bilder, Links zu allen Unterseiten auf zoller.info, Shop- und Anfrage-Link
+- **Suche** über Namen, Kategorien, Modelle und Werkzeugtypen
+- **Werkzeugtyp-Filter** (wie auf zoller.info): passende Geräte leuchten in der Halle
+- **Lageplan** mit Kameraposition, klickbar
+- **Deep-Links**: `#produkt/venturion`, `#themenwelt/automation`
+- Handy-Layout mit Bottom-Sheet, Fallback-Liste ohne WebGL, Tastatursteuerung (`?` zeigt alle Kürzel)
+
+## Aufbau
+
+| Pfad | Inhalt |
+|---|---|
+| `docs/` | Fertige Webseite (GitHub Pages) |
+| `docs/data/products.json` | Kategorien, Produkte, Werkzeugtypen – erzeugt von `tools/build.py` |
+| `docs/img/p/`, `docs/img/hd/` | Freigestellte Produktbilder für die 3D-Szene (512 px) und den Fokus (1024 px) |
+| `docs/img/g/`, `docs/img/wall/` | Bilder für Detail-Panel und Rückwände |
+| `docs/assets/js/world.js` | Three.js-Szene: Layout, Architektur, Exponate, Kamera, Begehen |
+| `docs/assets/js/main.js` | Oberfläche: Themenwelten, Suche, Filter, Panel, Lageplan, Rundgang |
+| `tools/build.py` | Extrahiert Texte und Bilder aus dem Projekt `zoller-webseite` |
+
+## Lokal starten
+
+```bash
+python3 -m http.server 8790 --directory docs
+```
+
+Dann http://localhost:8790 öffnen.
+
+## Daten neu erzeugen
+
+Die Inhalte stammen aus der strukturierten Kopie von zoller.info im Nachbarprojekt `zoller-webseite`.
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install pillow numpy
+.venv/bin/python tools/build.py ../zoller-webseite
+```
+
+## Hinweise
+
+- Texte, Produktbilder, Logo und Schrift T-Star gehören der E. Zoller GmbH & Co. KG. Jedes Produkt verlinkt auf seine Originalseite.
+- Keine Tracker, keine Cookies, keine externen Abhängigkeiten zur Laufzeit (Three.js liegt lokal unter `docs/assets/vendor/`).
