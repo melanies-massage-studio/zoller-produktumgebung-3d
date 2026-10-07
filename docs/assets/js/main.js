@@ -25,7 +25,7 @@ const byId = new Map(products.map((p) => [p.id, p]));
 const ordered = categories.flatMap((c) => products.filter((p) => p.cat === c.id).sort((a, b) => c.subs.indexOf(a.sub) - c.subs.indexOf(b.sub)));
 const orderIndex = new Map(ordered.map((p, i) => [p.id, i]));
 products.forEach((p) => {
-  p._hay = norm([p.name, p.id, p.claim, p.teaser, p.sub, catById.get(p.cat).name, p.badge, ...(p.tools || []), ...(p.models || []).map((m) => m.name)].join(' '));
+  p._hay = norm([p.name, p.name.replace(/μ/g, 'mu'), p.name.replace(/μ/g, 'my'), p.id, p.claim, p.teaser, p.sub, catById.get(p.cat).name, p.badge, ...(p.tools || []), ...(p.models || []).map((m) => m.name)].join(' '));
   p._name = norm(p.name);
 });
 const thumb = (p) => (p.kind === 'package' ? null : `img/p/${p.id}.webp`);
@@ -78,6 +78,7 @@ function setOpenCat(id) {
     li.classList.toggle('is-open', on);
     $('.cat__btn', li).setAttribute('aria-expanded', String(on));
   });
+  if (isPhone()) updateInset();
 }
 function setActiveCat(id) {
   state.activeCat = id;
@@ -375,16 +376,13 @@ window.addEventListener('keydown', (e) => {
   }
   if (k === '/') { e.preventDefault(); search.focus(); return; }
   if (k === '?') { toggleHelp($('#help').hidden); return; }
+  if (k === 'g' || k === 'G') { toggleWalk(!state.walk); return; }
   if (state.walk) return; // Pfeiltasten/WASD gehören dem Begehen-Modus
   if (k === 'ArrowRight') { e.preventDefault(); step(1); }
   else if (k === 'ArrowLeft') { e.preventDefault(); step(-1); }
   else if (k === 'h' || k === 'H') goOverview();
   else if (k === 't' || k === 'T') (state.tour ? stopTour() : startTour(state.selected));
-  else if (k === 'g' || k === 'G') toggleWalk(true);
   else if (/^[1-9]$/.test(k) && categories[+k - 1]) goSector(categories[+k - 1].id);
-});
-window.addEventListener('keydown', (e) => {
-  if (state.walk && (e.key === 'g' || e.key === 'G') && !e.target instanceof Element && e.target.closest('input, select, textarea')) toggleWalk(false);
 });
 
 /* ------------------------------------------------------------------ Hinweis */
