@@ -20,6 +20,7 @@ const ICON_EYE = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3
 /* ------------------------------------------------------------------ Daten */
 const data = await fetch('data/products.json', { cache: 'no-cache' }).then((r) => r.json());
 const { categories, products } = data;
+const SITE = data.site || 'https://melanies-massage-studio.github.io/zoller-webseite/';
 const catById = new Map(categories.map((c, i) => [c.id, { ...c, index: i }]));
 const byId = new Map(products.map((p) => [p.id, p]));
 const ordered = categories.flatMap((c) => products.filter((p) => p.cat === c.id).sort((a, b) => c.subs.indexOf(a.sub) - c.subs.indexOf(b.sub)));
@@ -163,9 +164,9 @@ function productHTML(p) {
   const intro = (p.intro || []).filter((t) => t && t !== p.claim).map((t) => `<p>${esc(t)}</p>`).join('');
   const hl = p.highlights?.length ? `<ul class="p-hl">${p.highlights.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : '';
   const cta = `<div class="p-cta">
-      <a class="btn btn--primary" href="${esc(p.url)}" target="_blank" rel="noopener">Auf zoller.info ansehen ${ICON_EXT}</a>
+      <a class="btn btn--primary" href="${esc(p.url)}">Zur Produktseite ${ICON_EXT}</a>
       ${p.shop ? `<a class="btn" href="${esc(p.shop)}" target="_blank" rel="noopener">Im Shop ${ICON_CART}</a>` : ''}
-      <a class="btn btn--dark" href="https://www.zoller.info/unternehmen/kontakt" target="_blank" rel="noopener">Anfragen ${ICON_MAIL}</a>
+      <a class="btn btn--dark" href="${esc(SITE)}unternehmen/kontakt/">Anfragen ${ICON_MAIL}</a>
       <button type="button" class="btn" data-act="show" title="Kamera zum Produkt">${ICON_EYE} Im Raum zeigen</button>
       <button type="button" class="btn" data-act="copy" title="Direktlink kopieren">${ICON_LINK} Link</button>
     </div>`;
@@ -176,13 +177,13 @@ function productHTML(p) {
   if (p.features?.length) acc.push(['Ausstattung & Merkmale', p.features.length, p.features.map((f) => `<div class="feat"><b>${esc(f.title)}</b>${esc(f.text)}</div>`).join(''), true]);
   if (p.models?.length) acc.push(['Modelle', p.models.length, `<div class="models">${p.models.map((m) => {
     const inner = `${m.img ? `<img src="${esc(m.img)}" alt="" loading="lazy">` : ''}<div><b>${esc(m.name)}</b>${m.text ? `<span>${esc(m.text)}</span>` : ''}</div>`;
-    return m.href ? `<a class="model" href="${esc(m.href)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="model">${inner}</div>`;
+    return m.href ? `<a class="model" href="${esc(m.href)}">${inner}</a>` : `<div class="model">${inner}</div>`;
   }).join('')}</div>`, !p.features?.length]);
   if (p.specs?.length) acc.push(['Technische Daten', p.specs.length > 1 ? `${p.specs.length} Tabellen` : '', p.specs.map((s) => `<div class="spec">${s.title ? `<h5>${esc(s.title)}</h5>` : ''}<table>${s.rows.map((r) => `<tr>${r.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</table></div>`).join(''), false]);
   if (p.sections?.length) acc.push(['Mehr erfahren', '', p.sections.map((s) => `<div class="sect"><h5>${esc(s.title)}</h5>${s.text.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`).join(''), false]);
   const gal = (p.gallery || []).filter((g) => g.src && g.src !== p.header);
   if (gal.length) acc.push(['Bilder', gal.length, `<div class="gallery">${gal.map((g) => `<figure><img src="${esc(g.src)}" alt="${esc(g.title || g.text || p.name)}" loading="lazy" data-cap="${esc([g.title, g.text].filter(Boolean).join(' – '))}">${g.title || g.text ? `<figcaption>${g.title ? `<b>${esc(g.title)}</b>` : ''}${esc(g.text)}</figcaption>` : ''}</figure>`).join('')}</div>`, false]);
-  if (p.links?.length) acc.push(['Weitere Seiten auf zoller.info', p.links.length, `<ul class="links">${p.links.map((l) => `<li><a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join('')}</ul>`, false]);
+  if (p.links?.length) acc.push(['Weitere Seiten zum Produkt', p.links.length, `<ul class="links">${p.links.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join('')}</ul>`, false]);
 
   return `${hero}
     <div class="p-head">
@@ -193,7 +194,7 @@ function productHTML(p) {
     <div class="p-body">${p.teaser && p.teaser !== p.claim ? `<p>${esc(p.teaser)}</p>` : ''}${intro}${hl}</div>
     ${cta}${tools}${also}
     <div class="p-acc">${acc.map(([t, n, body, open]) => `<details class="acc"${open ? ' open' : ''}><summary>${esc(t)}${n ? `<small>${esc(n)}</small>` : ''}</summary><div class="acc__body">${body}</div></details>`).join('')}</div>
-    <p class="p-source">Quelle: <a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.url.replace('https://', ''))}</a></p>`;
+    <p class="p-source">Alle Details auf der Produktseite: <a href="${esc(p.url)}">${esc(p.name.replace(/\u00ad/g, ''))}</a></p>`;
 }
 
 function openPanel(p) {

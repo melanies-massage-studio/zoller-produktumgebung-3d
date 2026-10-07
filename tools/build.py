@@ -31,6 +31,16 @@ PAGES = SRC / "content" / "pages"
 FILEADMIN = SRC / "docs"
 OUT = ROOT / "docs"
 SITE = "https://www.zoller.info"
+WEB = "https://melanies-massage-studio.github.io/zoller-webseite"   # eigene Webseite (Relaunch)
+WEB_DOCS = SRC / "docs"
+
+
+def web(path):
+    """Link auf die eigene ZOLLER-Webseite; nur falls die Seite dort fehlt, auf zoller.info."""
+    clean_path = "/" + path.strip("/")
+    if (WEB_DOCS / clean_path.strip("/") / "index.html").exists():
+        return f"{WEB}{clean_path}/"
+    return SITE + clean_path
 
 # ---------------------------------------------------------------------------
 # Kategorien (Reihenfolge wie auf zoller.info/produkte)
@@ -444,12 +454,12 @@ def extract(pid, path, kind):
                 cap = i.get("caption") or ""
                 text = " ".join(paragraphs(re.sub(r"<h[1-6][^>]*>.*?</h[1-6]>", "", cap))).replace("Mehr erfahren", "").strip()
                 d["models"].append({"name": clean_name(i["title"]), "text": text, "img": copy_gallery(i["src"]),
-                                    "href": SITE + i["href"] if (i.get("href") or "").startswith("/produkte") else None})
+                                    "href": web(i["href"]) if (i.get("href") or "").startswith("/produkte") else None})
 
     # Links zu zoller.info
-    d["links"] = [{"label": "Produktseite", "href": SITE + path}]
+    d["links"] = [{"label": "Produktseite", "href": web(path)}]
     for label, href in subpages:
-        d["links"].append({"label": label, "href": SITE + href})
+        d["links"].append({"label": label, "href": web(href)})
     if not d["intro"] and d["claim"]:
         d["intro"] = [d["claim"]]
     if not d["features"]:
@@ -483,13 +493,13 @@ for pid, path, cat, sub, kind, height, img in PRODUCTS:
             "für mehr Prozesssicherheit durch aktuelle Werkzeugdaten. Kompatibel zu ZOLLER TMS Tool Management Solutions.",
         ]
         info["links"] = [{"label": "Tooling-Shop auf myzoller.com", "href": "https://myzoller.com/de/de/shop/tooling"},
-                         {"label": "Übersicht Werkzeugaufnahmen", "href": SITE + path}]
+                         {"label": "Übersicht Werkzeugaufnahmen", "href": web(path)}]
         info["shop"] = "https://myzoller.com/de/de/shop/tooling"
         info["highlights"] = ["Über 2500 Werkzeugaufnahmen", "Optional mit »idChip«", "Kompatibel zu ZOLLER TMS"]
         info["header_img"] = copy_gallery("/fileadmin/_processed_/d/c/" + find_image("csm_header_tooling_").name) if find_image("csm_header_tooling_") else None
     entry = {
         "id": pid, "name": name, "badge": badge, "cat": cat, "sub": sub, "kind": kind, "h": height,
-        "url": SITE + path, "claim": claim, "teaser": teaser,
+        "url": web(path), "path": path, "claim": claim, "teaser": teaser,
         "headline": info["headline"], "intro": info["intro"], "sections": info["sections"],
         "highlights": info["highlights"][:4], "features": info["features"], "models": info["models"][:10],
         "specs": info["specs"], "gallery": info["gallery"], "links": info["links"], "shop": info["shop"],
@@ -523,11 +533,11 @@ for cid, name, wall in CATEGORIES:
     for p in products:
         if p["cat"] == cid and p["sub"] not in subs:
             subs.append(p["sub"])
-    categories.append({"id": cid, "name": name, "text": cat_text.get(cid, ""), "url": f"{SITE}/produkte/{cid}",
+    categories.append({"id": cid, "name": name, "text": cat_text.get(cid, ""), "url": web(f"/produkte/{cid}"),
                        "wall": f"img/wall/{cid}.webp" if src else None, "subs": subs,
                        "count": sum(1 for p in products if p["cat"] == cid)})
 
-data = {"generated_from": "https://www.zoller.info/produkte", "categories": categories,
+data = {"generated_from": "https://www.zoller.info/produkte", "site": WEB + "/", "categories": categories,
         "toolTypes": tool_types, "products": products}
 (OUT / "data" / "products.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
 print(f"\n{len(products)} Produkte in {len(categories)} Kategorien, {len(copied)} Panel-Bilder kopiert.")

@@ -29,7 +29,7 @@ Darstellung je nach Produktart: freigestellte Geräte auf Bodenplatten, Tischger
 - **Steuerungslegende** unten rechts, passend zu Modus (Orbit/Begehen) und Gerät (Maus/Touch), einklappbar
 - **Begehen**: Ego-Perspektive mit WASD/Pfeiltasten, Klick auf den Boden zum Hingehen, Treppenstufen und Kollision
 - **Rundgang**: automatische Tour durch alle Themenwelten und Produkte
-- **Detail-Panel** pro Produkt: Claim, Beschreibung, Highlights, Ausstattung, Modelle, technische Daten, Bilder, Links zu allen Unterseiten auf zoller.info, Shop- und Anfrage-Link
+- **Detail-Panel** pro Produkt: Claim, Beschreibung, Highlights, Ausstattung, Modelle, technische Daten, Bilder, Links auf die Produktseite und alle Unterseiten der [ZOLLER Webseite](https://melanies-massage-studio.github.io/zoller-webseite/), Shop- und Anfrage-Link
 - **Suche** über Namen, Kategorien, Modelle und Werkzeugtypen
 - **Werkzeugtyp-Filter** (wie auf zoller.info): passende Geräte leuchten in der Halle
 - **Lageplan** mit Kameraposition, klickbar
@@ -67,5 +67,6 @@ python3 -m venv .venv && .venv/bin/pip install pillow numpy
 
 ## Hinweise
 
-- Texte, Produktbilder, Logo und Schrift T-Star gehören der E. Zoller GmbH & Co. KG. Jedes Produkt verlinkt auf seine Originalseite.
+- Texte, Produktbilder, Logo und Schrift T-Star gehören der E. Zoller GmbH & Co. KG. Jedes Produkt verlinkt auf seine Seite der ZOLLER Webseite.
+- `world.js` läuft auch auf der Startseite der Webseite (Kino-Modus `cinematic: true`, Kamera per `setProgress()`); `tools/sync_showroom.py` dort übernimmt die Datei.
 - Keine Tracker, keine Cookies, keine externen Abhängigkeiten zur Laufzeit (Three.js liegt lokal unter `docs/assets/vendor/`).

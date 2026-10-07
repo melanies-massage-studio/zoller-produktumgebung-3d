@@ -243,9 +243,11 @@ function symbolFlat(scale) {
 }
 
 /* =================================================================== */
-export async function createWorld(canvas, data, { onProgress = () => {}, mobile = false } = {}) {
+export async function createWorld(canvas, data, { onProgress = () => {}, mobile = false, base = '', cinematic = false } = {}) {
+  // cinematic: Kamera folgt setProgress() (z. B. Scroll), keine Maus-/Tastatursteuerung
+  if (cinematic) canvas.style.pointerEvents = 'none';
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.6 : 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.6 : (cinematic ? 1.5 : 2)));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping ?? THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
@@ -474,7 +476,7 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
       wallTexLoads.push(new Promise((res) => {
         const im = new Image(); im.decoding = 'async';
         im.onload = () => { const nw = wallPoster(sec, L.wallR, a0 - 0.2 / L.rIn, a1 + 0.2 / L.rIn, wallH, im); wall.material.map.dispose(); wall.material.dispose(); wall.material = nw.material; nw.geometry.dispose(); res(); };
-        im.onerror = res; im.src = sec.cat.wall;
+        im.onerror = res; im.src = base + sec.cat.wall;
       }));
     }
     const wallBack = new THREE.Mesh(arcStrip({ r0: L.wallR + 0.35, th0: a0 - 0.2 / L.rIn, th1: a1 + 0.2 / L.rIn, y0: 0, y1: wallH, segs: 48 }), new THREE.MeshStandardMaterial({ color: 0xdcdee1, roughness: 0.9, side: THREE.DoubleSide }));
@@ -597,7 +599,7 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
       scr.position.set(0, m.base + frameH / 2, 0.041); holder.add(scr);
       const ring = new THREE.Mesh(ringGeo, ex.ringMat); ring.scale.setScalar(1.25); ring.position.y = 0.004; root.add(ring);
       ex.ring = ring; ex.screen = scr; ex.holder = holder;
-      loadQueue.push({ ex, url: `img/p/${p.id}.webp`, screen: true });
+      loadQueue.push({ ex, url: `${base}img/p/${p.id}.webp`, screen: true });
     }
 
     if (p.kind !== 'screen') {
@@ -613,7 +615,7 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
         const t = canvasTex(packageCanvas(p.tier, p.name), renderer);
         mat.map = t; mat.opacity = 1; mat.needsUpdate = true;
       } else {
-        loadQueue.push({ ex, url: `img/p/${p.id}.webp` });
+        loadQueue.push({ ex, url: `${base}img/p/${p.id}.webp` });
       }
     }
 
@@ -687,7 +689,7 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
     if (hd.has(p.id)) { const e = hd.get(p.id); hd.delete(p.id); hd.set(p.id, e); return; }
     hd.set(p.id, null);
     try {
-      const t = await texLoader.loadAsync(`img/hd/${p.id}.webp`);
+      const t = await texLoader.loadAsync(`${base}img/hd/${p.id}.webp`);
       t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso;
       if (!hd.has(p.id)) { t.dispose(); return; }
       hd.set(p.id, t);
@@ -729,6 +731,21 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
     }
     return { target: new THREE.Vector3(0, 0, 1.5), r: L.wallR * 2.45 * Math.max(1, 1.3 / aspect), th: 0, ph: 0.7 };
   };
+
+  let stopsCache = null, stopsKey = '';
+  function cinemaStops() {
+    const key = `${W}x${H}x${ctl.tvo.x}x${ctl.tvo.y}`;
+    if (stopsCache && stopsKey === key) return stopsCache;
+    const ov = overviewPose();
+    const stops = [{ target: ov.target.clone(), r: ov.r * 1.02, th: 0, ph: 0.62 }];
+    L.sectors.forEach((sec) => {
+      const p = poseForSector(sec);
+      stops.push({ target: p.target, r: p.r * 0.9, th: -sec.mid, ph: 1.2 });
+    });
+    stops.push({ target: ov.target.clone(), r: ov.r * 1.02, th: -TAU, ph: 0.72 });
+    stopsCache = stops; stopsKey = key;
+    return stops;
+  }
 
   function orbitPos(target, r, th, ph, out = new THREE.Vector3()) {
     return out.set(target.x + r * Math.sin(ph) * Math.sin(th), target.y + r * Math.cos(ph), target.z + r * Math.sin(ph) * Math.cos(th));
@@ -1069,7 +1086,9 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
   let started = false;
   let activeSector = null;
 
+  let running = true, looping = false;
   function frame() {
+    if (!running) { looping = false; return; }
     requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
 
@@ -1082,8 +1101,9 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
     } else if (ctl.mode === 'orbit') {
       updateFlight(dt);
       if (!ctl.flight) {
-        ctl.target.x = damp(ctl.target.x, ctl.tTarget.x, 7, dt); ctl.target.y = damp(ctl.target.y, ctl.tTarget.y, 7, dt); ctl.target.z = damp(ctl.target.z, ctl.tTarget.z, 7, dt);
-        ctl.r = damp(ctl.r, ctl.tR, 7, dt); ctl.th = damp(ctl.th, ctl.tTh, 9, dt); ctl.ph = damp(ctl.ph, ctl.tPh, 9, dt);
+        const kd = cinematic ? 3.2 : 7, ka = cinematic ? 3.2 : 9;
+        ctl.target.x = damp(ctl.target.x, ctl.tTarget.x, kd, dt); ctl.target.y = damp(ctl.target.y, ctl.tTarget.y, kd, dt); ctl.target.z = damp(ctl.target.z, ctl.tTarget.z, kd, dt);
+        ctl.r = damp(ctl.r, ctl.tR, kd, dt); ctl.th = damp(ctl.th, ctl.tTh, ka, dt); ctl.ph = damp(ctl.ph, ctl.tPh, ka, dt);
       }
       orbitPos(ctl.target, ctl.r, ctl.th, ctl.ph, camera.position);
       if (camera.position.y < 0.6) camera.position.y = 0.6;
@@ -1220,7 +1240,14 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
     layout: L, products, byId, camera,
     on(type, f) { (listeners[type] ||= []).push(f); return api; },
     start() {
-      if (started) return; started = true;
+      if (started) return; started = true; looping = true;
+      if (cinematic) {
+        const s0 = cinemaStops()[0];
+        ctl.target.copy(s0.target); ctl.r = s0.r; ctl.th = s0.th; ctl.ph = s0.ph;
+        api.setProgress(0);
+        frame();
+        return;
+      }
       const ov = overviewPose();
       ctl.target.copy(ov.target); ctl.r = ov.r * 1.8; ctl.th = -0.9; ctl.ph = 0.5;
       ctl.tTarget.copy(ctl.target); ctl.tR = ctl.r; ctl.tTh = ctl.th; ctl.tPh = ctl.ph;
@@ -1269,6 +1296,22 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
     },
     zone: () => ({ target: ZONE.target, walk: ZONE.walk, wallR: L.wallR }),
     // Kamera gezielt setzen, z. B. für Vorschaubilder: { target: [x, y, z], r, th, ph }
+    // Kino-Modus: p = 0 … 1 → Übersicht, sieben Themenwelten, Übersicht
+    setProgress(p) {
+      const st = cinemaStops(), n = st.length - 1;
+      const u = clamp(p, 0, 1) * n, i = Math.min(n - 1, Math.floor(u)), f = u - i;
+      const e = f < 0.32 ? 0 : f > 0.9 ? 1 : (() => { const x = (f - 0.32) / 0.58; return x * x * (3 - 2 * x); })();
+      const a = st[i], b = st[i + 1];
+      ctl.tTarget.lerpVectors(a.target, b.target, e);
+      ctl.tR = lerp(a.r, b.r, e) + Math.sin(Math.PI * e) * 7;
+      ctl.tTh = lerp(a.th, b.th, e) - 0.07 * (f < 0.32 ? f / 0.32 : 1 - e);
+      ctl.tPh = lerp(a.ph, b.ph, e) - Math.sin(Math.PI * e) * 0.1;
+      return { index: Math.round(u), sector: i + (e > 0.5 ? 1 : 0) - 1 };
+    },
+    setRunning(on) {
+      running = on;
+      if (on && started && !looping) { looping = true; clock.getDelta(); requestAnimationFrame(frame); }
+    },
     view(v, dur = 1.6) {
       if (ctl.mode !== 'orbit') return;
       const t = new THREE.Vector3(...v.target); clampTarget(t);
