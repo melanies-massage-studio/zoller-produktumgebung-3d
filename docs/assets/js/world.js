@@ -287,8 +287,17 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
 
   /* ---------------- Boden & Platz ---------------- */
   const pickFloor = [];
-  const floor = new THREE.Mesh(new THREE.RingGeometry(L.plazaR - 0.05, 240, 160, 4).rotateX(-Math.PI / 2), M.floor);
+  // Hallenboden innerhalb der Zone, außen dunklerer Boden mit gelber Grenzlinie
+  const zoneR = L.wallR + 1.3;
+  const floor = new THREE.Mesh(new THREE.RingGeometry(L.plazaR - 0.05, zoneR, 160, 4).rotateX(-Math.PI / 2), M.floor);
   floor.receiveShadow = true; scene.add(floor); pickFloor.push(floor);
+  M.floor.map.repeat.set(zoneR * 2 / 3.2, zoneR * 2 / 3.2);
+  const outMap = M.floor.map.clone(); outMap.repeat.set(520 / 3.2, 520 / 3.2); outMap.needsUpdate = true;
+  const outside = new THREE.Mesh(new THREE.RingGeometry(zoneR, 260, 160, 6).rotateX(-Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0xb4b8be, roughness: 0.85, map: outMap }));
+  outside.receiveShadow = true; scene.add(outside);
+  const zoneLine = new THREE.Mesh(new THREE.RingGeometry(zoneR, zoneR + 0.22, 200).rotateX(-Math.PI / 2), M.yellowInlay);
+  scene.add(zoneLine);
 
   const plaza = new THREE.Mesh(new THREE.CircleGeometry(L.plazaR, 128).rotateX(-Math.PI / 2), M.plaza);
   plaza.position.y = 0; plaza.receiveShadow = true; scene.add(plaza); pickFloor.push(plaza);
@@ -477,6 +486,22 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
     scene.add(g);
     sectorObjs.push(g);
   }
+
+  // Glasbrüstungen zwischen den Rückwänden schließen den Ausstellungsbereich
+  L.sectors.forEach((sec, i) => {
+    const next = L.sectors[(i + 1) % L.sectors.length];
+    const g0 = sec.th1 + 1.15 / L.rIn;
+    let g1 = next.th0 - 1.15 / L.rIn; if (g1 < g0) g1 += TAU;
+    if (g1 - g0 < 0.002) return;
+    const glass = new THREE.Mesh(arcStrip({ r0: L.wallR + 0.15, th0: g0, th1: g1, y0: 0, y1: 1.1, segs: 12 }), M.glass);
+    const rail = new THREE.Mesh(arcStrip({ r0: L.wallR + 0.05, r1: L.wallR + 0.25, th0: g0, th1: g1, y0: 1.1, segs: 12 }),
+      new THREE.MeshBasicMaterial({ color: YELLOW, toneMapped: false, side: THREE.DoubleSide }));
+    scene.add(glass, rail);
+    for (const th of [g0, g1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.14, 0.12), M.dark);
+      post.position.copy(polar(th, L.wallR + 0.15, 0.57)); post.castShadow = true; scene.add(post);
+    }
+  });
 
   /* ---------------- Wegweiser-Stelen am Platz ---------------- */
   const dashTex = (() => {
@@ -824,9 +849,7 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
   function collide(pos) {
     const r = Math.hypot(pos.x, pos.z);
     if (r < daisR + 0.7) { const k = (daisR + 0.7) / Math.max(r, 1e-3); pos.x *= k; pos.z *= k; }
-    const maxR = L.wallR - 0.8;
-    if (r > maxR) { const th = thetaOf(pos.x, pos.z); const inSector = L.sectors.some((s) => angDiff(s.th0 - 0.03, th) >= 0 && angDiff(th, s.th1 + 0.03) >= 0); if (inSector) { const k = maxR / r; pos.x *= k; pos.z *= k; } }
-    if (r > L.wallR + 25) { const k = (L.wallR + 25) / r; pos.x *= k; pos.z *= k; }
+    if (r > ZONE.walk) { const k = ZONE.walk / r; pos.x *= k; pos.z *= k; if (ctl.mode === 'walk') hitLimit('walk'); }
     for (const ex of exhibits) {
       const dx = pos.x - ex.root.position.x, dz = pos.z - ex.root.position.z, d = Math.hypot(dx, dz), min = ex.radius + 0.45;
       if (d < min && d > 1e-4) { pos.x = ex.root.position.x + dx / d * min; pos.z = ex.root.position.z + dz / d * min; }
@@ -869,7 +892,7 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
   }
 
   canvas.addEventListener('pointerdown', (e) => {
-    canvas.setPointerCapture(e.pointerId);
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetisches Ereignis */ }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, button: e.button, shift: e.shiftKey });
     dragDist = 0;
     if (pointers.size === 2) {
@@ -890,7 +913,7 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
       const [a, b] = [...pointers.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       if (ctl.mode === 'orbit') {
-        if (pinch0 > 0) ctl.tR = clamp(ctl.tR * (pinch0 / d), 2.5, 140);
+        if (pinch0 > 0) zoomBy(pinch0 / d, mid.x, mid.y);
         pan(mid.x - lastPinchMid.x, mid.y - lastPinchMid.y);
       } else if (ctl.mode === 'walk' && pinch0 > 0) {
         const fwd = new THREE.Vector3(-Math.sin(ctl.walk.yaw), 0, -Math.cos(ctl.walk.yaw));
@@ -932,22 +955,74 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     cancelAutomation();
-    const dy = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY;
+    let dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+    dy = clamp(dy, -260, 260);
     if (ctl.mode === 'orbit') {
-      ctl.tR = clamp(ctl.tR * Math.exp(dy * 0.0011), 2.5, 140);
+      // ctrlKey = Trackpad-Pinch (kleine Werte) → stärker gewichten
+      zoomBy(Math.exp(dy * (e.ctrlKey ? 0.012 : 0.0019)), e.clientX, e.clientY);
     } else if (ctl.mode === 'walk') {
-      const fwd = new THREE.Vector3(-Math.sin(ctl.walk.yaw), 0, -Math.cos(ctl.walk.yaw));
-      ctl.walk.pos.addScaledVector(fwd, -dy * 0.012); ctl.walk.goal = null;
+      walkStep(-dy * (e.ctrlKey ? 0.06 : 0.014));
     }
   }, { passive: false });
+
+  canvas.addEventListener('dblclick', (e) => {
+    if (ctl.mode !== 'orbit') return;
+    const hit = pick(e.clientX, e.clientY, true);
+    if (!hit || hit.type !== 'floor') return;
+    const t = hit.point.clone(); t.y = clamp(t.y + 1, 0.8, 2);
+    clampTarget(t);
+    startFlight({ target: t, r: clamp(ctl.r * 0.45, 7, 30), th: ctl.th, ph: Math.min(ctl.ph, 1.2) }, 1.1);
+  });
+
+  /* ---------------- Zoom & Zone ---------------- */
+  const ZONE = { target: L.wallR - 2.5, walk: L.wallR - 0.9, rMin: 2.6 };
+  const rMax = () => overviewPose().r * 1.18;
+  let lastLimit = 0;
+  function hitLimit(kind) {
+    const now = performance.now();
+    if (now - lastLimit > 2200) { lastLimit = now; emit('limit', kind); }
+  }
+  function clampTarget(v) {
+    const r = Math.hypot(v.x, v.z);
+    v.y = clamp(v.y, 0, 4);
+    if (r > ZONE.target) { v.x *= ZONE.target / r; v.z *= ZONE.target / r; return true; }
+    return false;
+  }
+  function floorPoint(x, y) {
+    setNdc(x, y);
+    raycaster.setFromCamera(ndc, camera);
+    const h = raycaster.intersectObjects([...proxies, ...pickFloor], false)[0];
+    return h ? h.point : null;
+  }
+  function zoomBy(f, x, y) {
+    if (ctl.mode !== 'orbit') return;
+    const old = ctl.tR, max = rMax();
+    const nr = clamp(old * f, ZONE.rMin, max);
+    if (f > 1 && old >= max - 0.05) { hitLimit('zoom'); return; }
+    if (Math.abs(nr - old) < 1e-4) return;
+    if (x != null) {
+      const pt = floorPoint(x, y);
+      if (pt) {
+        const k = 1 - nr / old; // >0 beim Hineinzoomen: Ziel wandert zum Mauszeiger
+        ctl.tTarget.x += (pt.x - ctl.tTarget.x) * k;
+        ctl.tTarget.z += (pt.z - ctl.tTarget.z) * k;
+        if (k > 0) ctl.tTarget.y += (clamp(pt.y + 0.8, 0, 3) - ctl.tTarget.y) * k;
+      }
+    }
+    ctl.tR = nr;
+    if (clampTarget(ctl.tTarget)) hitLimit('pan');
+  }
+  function walkStep(d) {
+    const fwd = new THREE.Vector3(-Math.sin(ctl.walk.yaw), 0, -Math.cos(ctl.walk.yaw));
+    ctl.walk.pos.addScaledVector(fwd, d); ctl.walk.goal = null;
+  }
 
   function pan(dx, dy) {
     const k = ctl.tR * 0.0016;
     const right = new THREE.Vector3(Math.cos(ctl.th), 0, -Math.sin(ctl.th));
     const fwd = new THREE.Vector3(-Math.sin(ctl.th), 0, -Math.cos(ctl.th));
     ctl.tTarget.addScaledVector(right, -dx * k).addScaledVector(fwd, dy * k);
-    const r = Math.hypot(ctl.tTarget.x, ctl.tTarget.z), max = L.wallR + 10;
-    if (r > max) ctl.tTarget.multiplyScalar(max / r);
+    if (clampTarget(ctl.tTarget)) hitLimit('pan');
   }
 
   window.addEventListener('keydown', (e) => {
@@ -1187,6 +1262,18 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
       startFlight(poseForProduct(p));
     },
     clearSelection() { setSelected(null); },
+    zoom(f) {
+      cancelAutomation();
+      if (ctl.mode === 'walk') { walkStep(f < 1 ? 2.5 : -2.5); return; }
+      zoomBy(f);
+    },
+    zone: () => ({ target: ZONE.target, walk: ZONE.walk, wallR: L.wallR }),
+    // Kamera gezielt setzen, z. B. für Vorschaubilder: { target: [x, y, z], r, th, ph }
+    view(v, dur = 1.6) {
+      if (ctl.mode !== 'orbit') return;
+      const t = new THREE.Vector3(...v.target); clampTarget(t);
+      startFlight({ target: t, r: clamp(v.r, ZONE.rMin, rMax()), th: v.th, ph: clamp(v.ph, 0.18, 1.5) }, dur);
+    },
     setFilter(ids) { filterSet = ids ? new Set(ids) : null; },
     setWalk(on) { on ? enterWalk() : exitWalk(); },
     get mode() { return ctl.mode.startsWith('walk') ? 'walk' : 'orbit'; },
@@ -1199,7 +1286,8 @@ export async function createWorld(canvas, data, { onProgress = () => {}, mobile 
     },
     flyToPoint(x, z) {
       if (ctl.mode === 'walk') { ctl.walk.goal = new THREE.Vector3(x, 0, z); return; }
-      startFlight({ target: new THREE.Vector3(x, 1.2, z), r: Math.min(ctl.r, 26), th: ctl.th, ph: Math.min(ctl.ph, 1.15) });
+      const t = new THREE.Vector3(x, 1.2, z); clampTarget(t);
+      startFlight({ target: t, r: Math.min(ctl.r, 26), th: ctl.th, ph: Math.min(ctl.ph, 1.15) });
     },
     screenOf(id) {
       const p = byId.get(id); if (!p) return null;

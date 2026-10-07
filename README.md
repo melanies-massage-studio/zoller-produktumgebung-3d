@@ -24,7 +24,9 @@ Darstellung je nach Produktart: freigestellte Geräte auf Bodenplatten, Tischger
 
 ## Funktionen
 
-- **Orbit-Ansicht**: ziehen, zoomen, verschieben; Klick auf ein Produkt fliegt hin und öffnet die Details
+- **Orbit-Ansicht**: ziehen, verschieben, zoomen zum Mauszeiger (Mausrad, Trackpad-Pinch, Zwei-Finger-Geste, `+`/`−`, Zoom-Knöpfe, Doppelklick); Klick auf ein Produkt fliegt hin und öffnet die Details
+- **Ausstellungszone**: Kamera und Begehen bleiben innerhalb der gelben Grenzlinie; am Rand erscheint ein Hinweis
+- **Steuerungslegende** unten rechts, passend zu Modus (Orbit/Begehen) und Gerät (Maus/Touch), einklappbar
 - **Begehen**: Ego-Perspektive mit WASD/Pfeiltasten, Klick auf den Boden zum Hingehen, Treppenstufen und Kollision
 - **Rundgang**: automatische Tour durch alle Themenwelten und Produkte
 - **Detail-Panel** pro Produkt: Claim, Beschreibung, Highlights, Ausstattung, Modelle, technische Daten, Bilder, Links zu allen Unterseiten auf zoller.info, Shop- und Anfrage-Link

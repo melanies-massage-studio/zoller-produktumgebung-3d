@@ -8,6 +8,9 @@
   <meta name="theme-color" content="#e7e9ec">
   <meta property="og:title" content="Zoller Produktumgebung 3D">
   <meta property="og:description" content="Alle ZOLLER-Produkte in einem begehbaren 3D-Showroom, sortiert nach Themenwelten.">
+  <meta property="og:image" content="https://melanies-massage-studio.github.io/zoller-produktumgebung-3d/assets/img/vorschau.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/img/favicon.ico">
   <link rel="stylesheet" href="assets/css/app.css">
   <script type="importmap">{ "imports": { "three": "./assets/vendor/three.module.min.js" } }</script>
@@ -18,7 +21,7 @@
     <div class="vignette" aria-hidden="true"></div>
 
     <header class="topbar">
-      <a class="brand" href="https://www.zoller.info/startseite" target="_blank" rel="noopener" aria-label="ZOLLER – zoller.info öffnen">
+      <a class="brand" href="https://melanies-massage-studio.github.io/zoller-webseite/" aria-label="Zurück zur ZOLLER Webseite" title="Zurück zur ZOLLER Webseite">
         <img src="assets/img/zoller.svg" alt="ZOLLER" width="132" height="30">
       </a>
       <div class="brand__title">
@@ -99,15 +102,49 @@
     </div>
 
     <div class="walkhint" id="walkhint" hidden>
-      <strong>Begehen</strong>
-      <span class="only-desktop"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> gehen · <kbd>Q</kbd><kbd>E</kbd> drehen · Ziehen: umsehen · Klick auf Boden: hingehen · <kbd>⇧</kbd> schneller</span>
-      <span class="only-touch">Ziehen: umsehen · Tippen auf Boden: hingehen · Zwei Finger: vor/zurück</span>
+      <strong>Begehen-Modus</strong>
+      <span>Sie gehen in Augenhöhe durch die Halle</span>
       <button type="button" class="chip chip--dark" id="walk-exit">Beenden</button>
     </div>
 
-    <div class="hint" id="hint" hidden>
-      <span class="only-desktop">Ziehen: drehen · Rechtsklick/⇧+Ziehen: verschieben · Scrollen: zoomen · Klick auf ein Produkt: Details</span>
-      <span class="only-touch">Wischen: drehen · Zwei Finger: zoomen &amp; verschieben · Tippen auf ein Produkt: Details</span>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="controls" id="controls">
+      <div class="zoom" role="group" aria-label="Zoom">
+        <button type="button" class="zoom__btn" id="zoom-in" aria-label="Hineinzoomen" title="Hineinzoomen (+)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button type="button" class="zoom__btn" id="zoom-out" aria-label="Herauszoomen" title="Herauszoomen (−)"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+      </div>
+      <section class="legend" id="legend" aria-label="Steuerung">
+        <button type="button" class="legend__head" id="legend-toggle" aria-expanded="true">
+          <span class="legend__title"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="5"/><path d="M12 7v3"/></svg>Steuerung</span>
+          <svg class="legend__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <ul class="legend__list legend--orbit only-desktop-list">
+          <li><i class="m m--left" aria-hidden="true"></i><span><b>Ziehen</b> – Halle drehen</span></li>
+          <li><i class="m m--wheel" aria-hidden="true"></i><span><b>Scrollen</b> – zoomen, zum Mauszeiger hin</span></li>
+          <li><i class="m m--right" aria-hidden="true"></i><span><b>Rechts ziehen</b> oder <kbd>⇧</kbd> + Ziehen – verschieben</span></li>
+          <li><i class="m m--left" aria-hidden="true"></i><span><b>Klick</b> – Produkt öffnen · <b>Doppelklick</b> – heranzoomen</span></li>
+          <li class="legend__keys"><kbd>+</kbd><kbd>−</kbd> Zoom <kbd>←</kbd><kbd>→</kbd> Produkte <kbd>G</kbd> Begehen</li>
+        </ul>
+        <ul class="legend__list legend--walk only-desktop-list">
+          <li><span class="k"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>gehen · <kbd>⇧</kbd> schneller</span></li>
+          <li><span class="k"><kbd>Q</kbd><kbd>E</kbd></span><span>drehen (auch <kbd>←</kbd><kbd>→</kbd>)</span></li>
+          <li><i class="m m--left" aria-hidden="true"></i><span><b>Ziehen</b> – umsehen</span></li>
+          <li><i class="m m--left" aria-hidden="true"></i><span><b>Klick auf den Boden</b> – hingehen</span></li>
+          <li class="legend__keys"><kbd>G</kbd> oder <kbd>Esc</kbd> beendet das Begehen</li>
+        </ul>
+        <ul class="legend__list legend--orbit only-touch-list">
+          <li><i class="f f--1" aria-hidden="true"></i><span><b>Wischen</b> – Halle drehen</span></li>
+          <li><i class="f f--2" aria-hidden="true"></i><span><b>Zwei Finger spreizen</b> – zoomen</span></li>
+          <li><i class="f f--2" aria-hidden="true"></i><span><b>Zwei Finger schieben</b> – verschieben</span></li>
+          <li><i class="f f--1" aria-hidden="true"></i><span><b>Tippen</b> – Produkt öffnen</span></li>
+        </ul>
+        <ul class="legend__list legend--walk only-touch-list">
+          <li><i class="f f--1" aria-hidden="true"></i><span><b>Wischen</b> – umsehen</span></li>
+          <li><i class="f f--1" aria-hidden="true"></i><span><b>Tippen auf den Boden</b> – hingehen</span></li>
+          <li><i class="f f--2" aria-hidden="true"></i><span><b>Zwei Finger spreizen</b> – vor / zurück</span></li>
+        </ul>
+      </section>
     </div>
 
     <div class="help" id="help" hidden role="dialog" aria-labelledby="help-title">
@@ -121,7 +158,8 @@
             <ul>
               <li><b>Ziehen</b> – Halle drehen</li>
               <li><b>Rechtsklick / ⇧ + Ziehen</b> – verschieben</li>
-              <li><b>Scrollen</b> – zoomen</li>
+              <li><b>Scrollen / Trackpad-Pinch</b> – zoomen zum Mauszeiger</li>
+              <li><b>Doppelklick auf den Boden</b> – heranzoomen</li>
               <li><b>Klick auf Produkt</b> – hinfliegen &amp; Details</li>
               <li><b>Klick auf Schild</b> – Themenwelt ansteuern</li>
             </ul>
@@ -129,6 +167,7 @@
           <section>
             <h3>Tastatur</h3>
             <ul>
+              <li><kbd>+</kbd> <kbd>−</kbd> – zoomen</li>
               <li><kbd>←</kbd> <kbd>→</kbd> – vorheriges / nächstes Produkt</li>
               <li><kbd>1</kbd>–<kbd>7</kbd> – Themenwelt</li>
               <li><kbd>H</kbd> – Übersicht · <kbd>T</kbd> – Rundgang</li>
@@ -146,7 +185,7 @@
             </ul>
           </section>
         </div>
-        <p class="help__note">Inhalte und Bilder stammen von <a href="https://www.zoller.info/produkte" target="_blank" rel="noopener">zoller.info/produkte</a>. Jedes Produkt verlinkt auf seine Originalseite.</p>
+        <p class="help__note">Die gelbe Linie am Boden markiert den Ausstellungsbereich – weiter hinaus geht es nicht. Inhalte und Bilder stammen von <a href="https://www.zoller.info/produkte" target="_blank" rel="noopener">zoller.info/produkte</a>. Jedes Produkt verlinkt auf seine Originalseite.</p>
       </div>
     </div>
 

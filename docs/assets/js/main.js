@@ -377,6 +377,8 @@ window.addEventListener('keydown', (e) => {
   if (k === '/') { e.preventDefault(); search.focus(); return; }
   if (k === '?') { toggleHelp($('#help').hidden); return; }
   if (k === 'g' || k === 'G') { toggleWalk(!state.walk); return; }
+  if (k === '+' || k === '=') { world?.zoom(0.75); return; }
+  if (k === '-' || k === '_') { world?.zoom(1.35); return; }
   if (state.walk) return; // Pfeiltasten/WASD gehören dem Begehen-Modus
   if (k === 'ArrowRight') { e.preventDefault(); step(1); }
   else if (k === 'ArrowLeft') { e.preventDefault(); step(-1); }
@@ -386,9 +388,34 @@ window.addEventListener('keydown', (e) => {
 });
 
 /* ------------------------------------------------------------------ Hinweis */
-const hint = $('#hint');
-let hintTimer = 0;
-function hideHint() { hint.classList.add('is-out'); clearTimeout(hintTimer); }
+/* ------------------------------------------------------------------ Steuerungslegende, Zoom, Hinweise */
+const legend = $('#legend');
+const LEGEND_KEY = 'zoller3d.legend';
+let legendTouched = false, hintTimer = 0;
+function setLegend(open, remember = false) {
+  legend.classList.toggle('is-collapsed', !open);
+  $('#legend-toggle').setAttribute('aria-expanded', String(open));
+  if (remember) { legendTouched = true; try { localStorage.setItem(LEGEND_KEY, open ? '1' : '0'); } catch { /* privat */ } }
+}
+$('#legend-toggle').addEventListener('click', () => setLegend(legend.classList.contains('is-collapsed'), true));
+try { if (localStorage.getItem(LEGEND_KEY) === '0') { setLegend(false); legendTouched = true; } } catch { /* privat */ }
+// Auf dem Handy klappt die Legende nach der ersten Bewegung ein (bleibt per Tipp erreichbar)
+function hideHint() { if (isPhone() && !legendTouched) { legendTouched = true; clearTimeout(hintTimer); setLegend(false); } }
+
+$('#zoom-in').addEventListener('click', () => { stopTour(); world?.zoom(0.68); });
+$('#zoom-out').addEventListener('click', () => { stopTour(); world?.zoom(1.47); });
+
+const toast = $('#toast');
+let toastTimer = 0;
+function showToast(text) {
+  toast.textContent = text; toast.classList.add('is-on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('is-on'), 2400);
+}
+const LIMIT_TEXT = {
+  zoom: 'Weiter heraus geht es nicht – Sie sehen die ganze Halle.',
+  pan: 'Rand der Ausstellung erreicht.',
+  walk: 'Hier endet der Ausstellungsbereich.',
+};
 
 /* ------------------------------------------------------------------ Tooltip */
 const tooltip = $('#tooltip');
@@ -416,11 +443,15 @@ function sizeMinimap() {
 function drawMinimap() {
   if (!world) return;
   const L = world.layout, W = mm.width, c = mmC;
-  const R = L.wallR + 1.5; mmScale = (c - 6 * (W / 220)) / R;
+  const R = L.wallR + 2.4; mmScale = (c - 6 * (W / 220)) / R;
   const s = mmScale, u = W / 220;
   const X = (x) => c + x * s, Y = (z) => c + z * s;
   mctx.clearRect(0, 0, W, W);
   const st = world.state();
+  // Zonengrenze
+  const zr = world.zone().wallR + 1.3;
+  mctx.strokeStyle = '#f0e600'; mctx.lineWidth = 2.4 * u; mctx.setLineDash([5 * u, 4 * u]);
+  mctx.beginPath(); mctx.arc(c, c, zr * s, 0, Math.PI * 2); mctx.stroke(); mctx.setLineDash([]);
   // Platz
   mctx.fillStyle = '#ffffff'; mctx.beginPath(); mctx.arc(c, c, L.plazaR * s, 0, Math.PI * 2); mctx.fill();
   mctx.strokeStyle = '#f0e600'; mctx.lineWidth = 2.2 * u; mctx.stroke();
@@ -516,7 +547,8 @@ async function boot() {
     $('#btn-walk').classList.toggle('is-on', state.walk);
     $('#btn-walk').setAttribute('aria-pressed', String(state.walk));
     $('#walkhint').hidden = !state.walk;
-    if (state.walk) hideHint();
+    app.classList.toggle('is-walk', state.walk);
+    if (state.walk && isPhone() && !legendTouched) setLegend(true);
     tooltip.classList.remove('is-on');
   });
   let last = performance.now();
@@ -534,8 +566,8 @@ async function boot() {
   world.start();
   updateInset();
 
-  hint.hidden = false;
-  hintTimer = setTimeout(hideHint, 12000);
+  world.on('limit', (kind) => showToast(LIMIT_TEXT[kind] || LIMIT_TEXT.pan));
+  if (isPhone()) hintTimer = setTimeout(hideHint, 14000);
 
   // Deep-Link
   const route = (delay) => {
