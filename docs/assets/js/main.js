@@ -20,7 +20,7 @@ const ICON_EYE = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3
 /* ------------------------------------------------------------------ Daten */
 const data = await fetch('data/products.json', { cache: 'no-cache' }).then((r) => r.json());
 const { categories, products } = data;
-const SITE = data.site || 'https://melanies-massage-studio.github.io/zoller-webseite/';
+const SITE = data.site || 'https://mzollercreations.github.io/zoller-webseite/';
 const catById = new Map(categories.map((c, i) => [c.id, { ...c, index: i }]));
 const byId = new Map(products.map((p) => [p.id, p]));
 const ordered = categories.flatMap((c) => products.filter((p) => p.cat === c.id).sort((a, b) => c.subs.indexOf(a.sub) - c.subs.indexOf(b.sub)));

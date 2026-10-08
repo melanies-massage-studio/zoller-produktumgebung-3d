@@ -2,7 +2,7 @@
 
 Ein begehbarer 3D-Showroom mit **allen 59 Produkten von [zoller.info](https://www.zoller.info/produkte)**, sortiert nach den sieben Themenwelten der Produktübersicht.
 
-**Live:** https://melanies-massage-studio.github.io/zoller-produktumgebung-3d/
+**Live:** https://mzollercreations.github.io/zoller-produktumgebung-3d/
 
 ## Die Halle
 
@@ -29,7 +29,7 @@ Darstellung je nach Produktart: freigestellte Geräte auf Bodenplatten, Tischger
 - **Steuerungslegende** unten rechts, passend zu Modus (Orbit/Begehen) und Gerät (Maus/Touch), einklappbar
 - **Begehen**: Ego-Perspektive mit WASD/Pfeiltasten, Klick auf den Boden zum Hingehen, Treppenstufen und Kollision
 - **Rundgang**: automatische Tour durch alle Themenwelten und Produkte
-- **Detail-Panel** pro Produkt: Claim, Beschreibung, Highlights, Ausstattung, Modelle, technische Daten, Bilder, Links auf die Produktseite und alle Unterseiten der [ZOLLER Webseite](https://melanies-massage-studio.github.io/zoller-webseite/), Shop- und Anfrage-Link
+- **Detail-Panel** pro Produkt: Claim, Beschreibung, Highlights, Ausstattung, Modelle, technische Daten, Bilder, Links auf die Produktseite und alle Unterseiten der [ZOLLER Webseite](https://mzollercreations.github.io/zoller-webseite/), Shop- und Anfrage-Link
 - **Suche** über Namen, Kategorien, Modelle und Werkzeugtypen
 - **Werkzeugtyp-Filter** (wie auf zoller.info): passende Geräte leuchten in der Halle
 - **Lageplan** mit Kameraposition, klickbar

@@ -31,7 +31,7 @@ PAGES = SRC / "content" / "pages"
 FILEADMIN = SRC / "docs"
 OUT = ROOT / "docs"
 SITE = "https://www.zoller.info"
-WEB = "https://melanies-massage-studio.github.io/zoller-webseite"   # eigene Webseite (Relaunch)
+WEB = "https://mzollercreations.github.io/zoller-webseite"   # eigene Webseite (Relaunch)
 WEB_DOCS = SRC / "docs"
 
 
