@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Erzeugt die Sprachfassungen der Produktumgebung 3D für die Länderseiten (Kanada EN/FR, Mexiko ES).
+"""Erzeugt die Sprachfassungen der Produktumgebung 3D für die Länderseiten (Kanada EN/FR, Mexiko ES, USA EN).
 
 Quelle sind die Länderfassungen im Projekt ``zoller-webseite`` (content/sites/<sprachpfad>/, siehe dort
 content/sites.json). Aufbau der Halle, Produktbilder und Reihenfolge kommen aus der deutschen Fassung
@@ -11,7 +11,11 @@ Ergebnis je Sprache (Ordner = Sprachcode, z. B. docs/en-ca/):
     index.html             Oberfläche in der Landessprache (Texte: tools/i18n.json)
     data/products.json     Produkte, Themenwelten, Werkzeugtypen in der Landessprache
 Bilder der Detail-Panels landen gemeinsam in docs/img/g/. Benötigt nur die Python-Standardbibliothek.
+
+Der Länder-Knopf (Weltkugel + Flagge) und die Länderliste kommen ebenfalls aus content/sites.json; sie werden
+in jede Fassung eingesetzt, auch in die deutsche docs/index.html (zwischen <!--lang-flag--> bzw. <!--lang-sites-->).
 """
+import hashlib
 import html
 import json
 import re
@@ -25,6 +29,7 @@ SRC = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT.parent / "zolle
 DOCS = ROOT / "docs"
 UI = json.loads((ROOT / "tools" / "i18n.json").read_text(encoding="utf-8"))
 sys.path.insert(0, str(SRC / "tools"))
+import flags as web_flags  # noqa: E402  Flaggen der Länderseiten
 import i18n as web_i18n  # noqa: E402  feste Texte der Webseite (u. a. Unterkategorien)
 
 # Schaltflächen und Teaser, die nicht in die Produkttexte gehören (alle Sprachen)
@@ -101,8 +106,11 @@ class Locale:
                 self.loc2de[p["path"]] = p["de_path"]
         tr_file = folder / "translations.json"
         self.tr = json.loads(tr_file.read_text(encoding="utf-8")) if tr_file.exists() else {}
-        rep_file = folder / "replace.json"   # Ersetzungen in Texten, z. B. »génie« -> »genius«
-        self.reps = json.loads(rep_file.read_text(encoding="utf-8")) if rep_file.exists() else {}
+        self.reps = {}   # Ersetzungen in Texten, z. B. »génie« -> »genius« (auch aus dem Overlay der Länderseite)
+        overlay = [SRC / "content" / "sites" / loc["overlay"]] if loc.get("overlay") else []
+        for rep_file in [f / "replace.json" for f in [folder] + overlay]:
+            if rep_file.exists():
+                self.reps.update(json.loads(rep_file.read_text(encoding="utf-8")))
         self.nav = json.loads((folder / "nav.json").read_text(encoding="utf-8"))
         self.files = [SRC / site["out"], SRC / "docs"]   # gespiegelte Dateien der Länderseite, sonst der deutschen
         self.copied = {}
@@ -351,15 +359,42 @@ class Locale:
         s = re.sub(r'\b(title|aria-label|placeholder|content)="([^"]+)"', lambda m: f'{m.group(1)}="{texts.get(m.group(2), m.group(2))}"', s)
         s = re.sub(r">([^<>]+)<", lambda m: ">" + texts.get(m.group(1), m.group(1)) + "<", s)
         js = {k: v for k, v in texts.items()}
-        inject = (f'<script>window.ZI18N={json.dumps(js, ensure_ascii=False)};window.ZBASE="../";</script>\n  '
-                  '<script type="module" src="../assets/js/main.js"></script>')
-        s = s.replace('<script type="module" src="../assets/js/main.js"></script>', inject)
-        return s
+        inject = f'<script>window.ZI18N={json.dumps(js, ensure_ascii=False)};window.ZBASE="../";</script>\n  '
+        s = re.sub(r'<script type="module" src="\.\./assets/js/main\.js', lambda m: inject + m.group(0), s, count=1)
+        return lang_menu(s, self.loc["code"], "../")
+
+
+SITES = json.loads((SRC / "content" / "sites.json").read_text(encoding="utf-8"))
+
+
+def lang_menu(page, code, base):
+    """Länder-Knopf (Flagge der Fassung) und Länderliste in eine index.html einsetzen. base = Weg zur deutschen Fassung."""
+    flag, items = "", []
+    for site in SITES.values():
+        for loc in site["locales"]:
+            cur = loc["code"] == code
+            svg = web_flags.FLAGS.get(site["flag"], "")
+            flag = svg if cur else flag
+            href = (base + (loc["code"].lower() + "/" if loc["src"] else "")) or "./"
+            items.append(f'<a class="lang-site{" is-current" if cur else ""}" href="{href}" hreflang="{loc["code"]}" lang="{loc["lang"]}"'
+                         f'{" aria-current=true" if cur else ""}>{svg}<span><b>{html.escape(loc["name"])}</b>'
+                         f'<small>{html.escape(loc["label"])}</small></span></a>')
+    page = re.sub(r"<!--lang-flag-->.*?<!--/lang-flag-->", lambda m: f"<!--lang-flag-->{flag}<!--/lang-flag-->", page, flags=re.S)
+    return re.sub(r"<!--lang-sites-->.*?<!--/lang-sites-->", lambda m: f"<!--lang-sites-->{''.join(items)}<!--/lang-sites-->", page, flags=re.S)
+
+
+def with_version(page):
+    """?v=… an app.css und main.js hängen (Prüfsumme der Oberfläche), damit Browser keine alte Fassung aus dem Cache nehmen."""
+    js = DOCS / "assets" / "js"
+    ver = hashlib.sha1(b"".join(p.read_bytes() for p in (DOCS / "assets" / "css" / "app.css", js / "main.js", js / "world.js"))).hexdigest()[:10]
+    return re.sub(r'(assets/(?:css/app\.css|js/main\.js))(\?v=\w+)?"', rf'\1?v={ver}"', page)
 
 
 def main():
-    sites = json.loads((SRC / "content" / "sites.json").read_text(encoding="utf-8"))
+    sites = SITES
     de_data = json.loads((DOCS / "data" / "products.json").read_text(encoding="utf-8"))
+    de_index = DOCS / "index.html"
+    de_index.write_text(with_version(lang_menu(de_index.read_text(encoding="utf-8"), "de-DE", "")), encoding="utf-8")
     for sid, site in sites.items():
         for loc in site["locales"]:
             if not loc["src"]:

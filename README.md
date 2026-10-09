@@ -73,8 +73,8 @@ python3 -m venv .venv && .venv/bin/pip install pillow numpy
 
 ## Sprachfassungen für die Länderseiten
 
-Für die Länderseiten der ZOLLER Webseite gibt es den Showroom auch auf Englisch (Kanada), Französisch (Kanada) und Spanisch (Mexiko):
-`/en-ca/`, `/fr-ca/`, `/es-mx/`. Aufbau der Halle und Produktbilder sind dieselben wie in der deutschen Fassung; alle Texte stammen aus den Produktseiten des jeweiligen Landes (`zoller-webseite/content/sites/…`), die Oberfläche aus `tools/i18n.json`.
+Für die Länderseiten der ZOLLER Webseite gibt es den Showroom auch auf Englisch (Kanada, USA), Französisch (Kanada) und Spanisch (Mexiko):
+`/en-ca/`, `/fr-ca/`, `/es-mx/`, `/en-us/`. Oben rechts (auf dem Handy in der rechten Spalte) wechselt ein Knopf mit Weltkugel und Flagge Land und Sprache; die geöffnete Ansicht (`#produkt/…`, `#themenwelt/…`) bleibt dabei erhalten. Länderliste und Flaggen kommen aus `zoller-webseite/content/sites.json` bzw. `tools/flags.py` und werden von `build_locale.py` auch in die deutsche `docs/index.html` eingesetzt. Aufbau der Halle und Produktbilder sind dieselben wie in der deutschen Fassung; alle Texte stammen aus den Produktseiten des jeweiligen Landes (`zoller-webseite/content/sites/…`), die Oberfläche aus `tools/i18n.json`.
 
 ```bash
 python3 tools/build.py          # deutsche Fassung (Pillow + numpy)

@@ -358,6 +358,11 @@ $('#walk-exit').addEventListener('click', () => toggleWalk(false));
 $('#btn-help').addEventListener('click', () => toggleHelp(true));
 $('#help-close').addEventListener('click', () => toggleHelp(false));
 $('#help').addEventListener('click', (e) => { if (e.target.id === 'help') toggleHelp(false); });
+// Land und Sprache: dieselbe Ansicht (#produkt/…, #themenwelt/…) in der anderen Sprachfassung öffnen
+$('#btn-lang').addEventListener('click', () => toggleLangs(true));
+$('#langs-close').addEventListener('click', () => toggleLangs(false));
+$('#langs').addEventListener('click', (e) => { if (e.target.id === 'langs') toggleLangs(false); });
+$$('#langs .lang-site').forEach((a) => a.addEventListener('click', () => { a.hash = location.hash; }));
 
 function toggleWalk(on = !state.walk) {
   if (!world) return;
@@ -366,6 +371,7 @@ function toggleWalk(on = !state.walk) {
   world.setWalk(on);
 }
 function toggleHelp(on) { $('#help').hidden = !on; if (on) $('#help-close').focus(); }
+function toggleLangs(on) { $('#langs').hidden = !on; if (on) ($('#langs .is-current') || $('#langs-close')).focus(); }
 
 window.addEventListener('keydown', (e) => {
   if (e.target instanceof Element && e.target.closest('input, select, textarea')) return;
@@ -374,6 +380,7 @@ window.addEventListener('keydown', (e) => {
   if (k === 'Escape') {
     const lb = $('.lightbox'); if (lb) { lb.remove(); return; }
     if (!$('#help').hidden) { toggleHelp(false); return; }
+    if (!$('#langs').hidden) { toggleLangs(false); return; }
     if (state.tour) { stopTour(); return; }
     if (panel.classList.contains('is-open')) { const p = byId.get(state.selected); closePanel(); if (p && world?.mode !== 'walk') world.sector(p.cat); return; }
     if (state.walk) { toggleWalk(false); return; }
