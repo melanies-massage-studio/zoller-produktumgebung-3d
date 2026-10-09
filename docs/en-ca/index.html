@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ZOLLER 3D Product World</title>
+  <meta name="description" content="All ZOLLER products in a walk-through 3D showroom – arranged by product world: presetting & measuring, tool management, inspection & measuring, automation, tool heat shrink technology, tool holders and tool balancing.">
+  <meta name="theme-color" content="#e7e9ec">
+  <meta property="og:title" content="ZOLLER 3D Product World">
+  <meta property="og:description" content="All ZOLLER products in a walk-through 3D showroom, arranged by product world.">
+  <meta property="og:image" content="https://mzollercreations.github.io/zoller-produktumgebung-3d/assets/img/vorschau.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="../assets/img/favicon.ico">
+  <link rel="stylesheet" href="../assets/css/app.css">
+  <script type="importmap">{ "imports": { "three": "../assets/vendor/three.module.min.js" } }</script>
+</head>
+<body>
+  <div class="app is-loading" id="app">
+    <canvas id="scene" class="scene" aria-label="3D showroom with all ZOLLER products"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="https://mzollercreations.github.io/zoller-canada/" aria-label="Back to the ZOLLER website" title="Back to the ZOLLER website">
+        <img src="../assets/img/zoller.svg" alt="ZOLLER" width="132" height="30">
+      </a>
+      <div class="brand__title">
+        <strong>Product World <span class="tag3d">3D</span></strong>
+        <span id="stats">Showroom</span>
+      </div>
+
+      <div class="tools">
+        <div class="search" id="search-wrap">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="search" type="search" placeholder="Search products …" autocomplete="off" aria-label="Search products" aria-controls="search-results" aria-expanded="false" role="combobox">
+          <kbd class="kbd" aria-hidden="true">/</kbd>
+          <ul class="search__results" id="search-results" role="listbox" hidden></ul>
+        </div>
+        <label class="select" title="Which machines suit your tool type?">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8z"/></svg>
+          <select id="tooltype" aria-label="Filter by tool type"><option value="">All tool types</option></select>
+        </label>
+        <div class="seg" role="group" aria-label="View">
+          <button class="btn-icon" id="btn-overview" type="button" title="Overview (H)" aria-label="Overview">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg><span>Overview</span>
+          </button>
+          <button class="btn-icon" id="btn-tour" type="button" title="Automatic tour (T)" aria-label="Start tour">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Tour</span>
+          </button>
+          <button class="btn-icon" id="btn-walk" type="button" title="Walk through the hall (G)" aria-label="Walk" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4.5" r="2"/><path d="m9 21 2.5-6.5L14 17v4M7 12l3-4.5 4 1 2.5 3.5M11.5 14.5 10 8"/></svg><span>Walk</span>
+          </button>
+          <button class="btn-icon" id="btn-help" type="button" title="Controls (?)" aria-label="Help with the controls">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.2-2.5 3.9"/><circle cx="12" cy="17.3" r=".6" fill="currentColor"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="dock" id="dock" aria-label="Product worlds">
+      <div class="dock__head">
+        <span>Product worlds</span>
+        <button class="dock__toggle" id="dock-toggle" type="button" aria-expanded="true" aria-label="Expand/collapse product worlds">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>
+        </button>
+      </div>
+      <ol class="dock__list" id="dock-list"></ol>
+    </nav>
+
+    <div class="minimap" id="minimap-wrap">
+      <canvas id="minimap" width="220" height="220" aria-label="Floor plan of the hall – click to fly there"></canvas>
+      <span class="minimap__label">Floor plan</span>
+    </div>
+
+    <div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+
+    <div class="filterbar" id="filterbar" hidden>
+      <span id="filter-text"></span>
+      <button type="button" id="filter-clear" class="chip chip--dark">Clear filter ×</button>
+    </div>
+
+    <aside class="panel" id="panel" aria-hidden="true" aria-labelledby="panel-title" role="dialog">
+      <div class="panel__bar">
+        <button type="button" class="round" id="panel-prev" aria-label="Previous product" title="Previous product (←)"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+        <span class="panel__pos" id="panel-pos"></span>
+        <button type="button" class="round" id="panel-next" aria-label="Next product" title="Next product (→)"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button type="button" class="round round--close" id="panel-close" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+      <div class="panel__scroll" id="panel-body"></div>
+    </aside>
+
+    <div class="tourbar" id="tourbar" hidden>
+      <div class="tourbar__progress"><i id="tour-progress"></i></div>
+      <div class="tourbar__row">
+        <span class="tourbar__badge">Tour</span>
+        <span class="tourbar__now" id="tour-now"></span>
+        <button type="button" class="round round--sm" id="tour-prev" aria-label="Back"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button type="button" class="round round--sm round--yellow" id="tour-play" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg></button>
+        <button type="button" class="round round--sm" id="tour-next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button type="button" class="round round--sm" id="tour-stop" aria-label="End tour"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+    </div>
+
+    <div class="walkhint" id="walkhint" hidden>
+      <strong>Walk mode</strong>
+      <span>You are walking through the hall at eye level</span>
+      <button type="button" class="chip chip--dark" id="walk-exit">Exit</button>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="controls" id="controls">
+      <div class="zoom" role="group" aria-label="Zoom">
+        <button type="button" class="zoom__btn" id="zoom-in" aria-label="Zoom in" title="Zoom in (+)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button type="button" class="zoom__btn" id="zoom-out" aria-label="Zoom out" title="Zoom out (−)"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+      </div>
+      <section class="legend" id="legend" aria-label="Controls">
+        <button type="button" class="legend__head" id="legend-toggle" aria-expanded="true">
+          <span class="legend__title"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="5"/><path d="M12 7v3"/></svg>Controls</span>
+          <svg class="legend__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <ul class="legend__list legend--orbit only-desktop-list">
+          <li><i class="m m--left" aria-hidden="true"></i><span><b>Drag</b> – rotate the hall</span></li>
+          <li><i class="m m--wheel" aria-hidden="true"></i><span><b>Scroll</b> – zoom towards the cursor</span></li>
+          <li><i class="m m--right" aria-hidden="true"></i><span><b>Right-drag</b> or <kbd>⇧</kbd> + drag – pan</span></li>
+          <li><i class="m m--left" aria-hidden="true"></i><span><b>Click</b> – open product · <b>Double-click</b> – zoom in</span></li>
+          <li class="legend__keys"><kbd>+</kbd><kbd>−</kbd> Zoom <kbd>←</kbd><kbd>→</kbd> Products <kbd>G</kbd> Walk</li>
+        </ul>
+        <ul class="legend__list legend--walk only-desktop-list">
+          <li><span class="k"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>walk · <kbd>⇧</kbd> faster</span></li>
+          <li><span class="k"><kbd>Q</kbd><kbd>E</kbd></span><span>turn (also <kbd>←</kbd><kbd>→</kbd>)</span></li>
+          <li><i class="m m--left" aria-hidden="true"></i><span><b>Drag</b> – look around</span></li>
+          <li><i class="m m--left" aria-hidden="true"></i><span><b>Click the floor</b> – walk there</span></li>
+          <li class="legend__keys"><kbd>G</kbd> or <kbd>Esc</kbd> ends walk mode</li>
+        </ul>
+        <ul class="legend__list legend--orbit only-touch-list">
+          <li><i class="f f--1" aria-hidden="true"></i><span><b>Swipe</b> – rotate the hall</span></li>
+          <li><i class="f f--2" aria-hidden="true"></i><span><b>Pinch with two fingers</b> – zoom</span></li>
+          <li><i class="f f--2" aria-hidden="true"></i><span><b>Drag with two fingers</b> – pan</span></li>
+          <li><i class="f f--1" aria-hidden="true"></i><span><b>Tap</b> – open product</span></li>
+        </ul>
+        <ul class="legend__list legend--walk only-touch-list">
+          <li><i class="f f--1" aria-hidden="true"></i><span><b>Swipe</b> – look around</span></li>
+          <li><i class="f f--1" aria-hidden="true"></i><span><b>Tap the floor</b> – walk there</span></li>
+          <li><i class="f f--2" aria-hidden="true"></i><span><b>Pinch with two fingers</b> – forward / back</span></li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="help" id="help" hidden role="dialog" aria-labelledby="help-title">
+      <div class="help__card">
+        <button type="button" class="round round--close help__close" id="help-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        <h2 id="help-title">How to move through the hall</h2>
+        <p class="help__lead">All ZOLLER products are arranged in seven product worlds around the central plaza with the ZOLLER symbol.</p>
+        <div class="help__grid">
+          <section>
+            <h3>Mouse</h3>
+            <ul>
+              <li><b>Drag</b> – rotate the hall</li>
+              <li><b>Right-click / ⇧ + drag</b> – pan</li>
+              <li><b>Scroll / trackpad pinch</b> – zoom towards the cursor</li>
+              <li><b>Double-click the floor</b> – zoom in</li>
+              <li><b>Click a product</b> – fly there &amp; details</li>
+              <li><b>Click a sign</b> – go to product world</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Keyboard</h3>
+            <ul>
+              <li><kbd>+</kbd> <kbd>−</kbd> – zoom</li>
+              <li><kbd>←</kbd> <kbd>→</kbd> – previous / next product</li>
+              <li><kbd>1</kbd>–<kbd>7</kbd> – product world</li>
+              <li><kbd>H</kbd> – overview · <kbd>T</kbd> – tour</li>
+              <li><kbd>G</kbd> – walk · <kbd>/</kbd> – search</li>
+              <li><kbd>Esc</kbd> – close / back</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Walk</h3>
+            <ul>
+              <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> – walk, <kbd>Q</kbd><kbd>E</kbd> – turn</li>
+              <li><b>Drag</b> – look around</li>
+              <li><b>Click the floor</b> – walk there</li>
+              <li><b>Touch</b>: tap to walk, two fingers forward/back</li>
+            </ul>
+          </section>
+        </div>
+        <p class="help__note">The yellow line on the floor marks the exhibition area – you cannot go beyond it. Every product links to its page on the <a href="https://mzollercreations.github.io/zoller-canada/products/">ZOLLER website</a>.</p>
+      </div>
+    </div>
+
+    <div class="loader" id="loader" role="status" aria-live="polite">
+      <svg class="loader__mark" viewBox="-60 -60 120 120" aria-hidden="true">
+        <circle class="loader__ring" r="27" />
+        <path class="loader__arms" d="M19 -19 L40 -40 M19 19 L40 40 M-19 19 L-40 40 M-19 -19 L-40 -40" />
+      </svg>
+      <div class="loader__title">3D Product World</div>
+      <div class="loader__bar"><i id="loader-bar"></i></div>
+      <div class="loader__text" id="loader-text">Setting up the showroom …</div>
+    </div>
+
+    <section class="fallback" id="fallback" hidden aria-label="Product overview"></section>
+  </div>
+
+  <noscript><p style="padding:2rem;font-family:sans-serif">The 3D Product World requires JavaScript. You can find all products on the <a href="https://mzollercreations.github.io/zoller-canada/products/">ZOLLER website</a>.</p></noscript>
+  <script>window.ZI18N={"Zoller Produktumgebung 3D": "ZOLLER 3D Product World", "Produktumgebung ": "Product World ", "Showroom": "Showroom", "Alle Werkzeugtypen": "All tool types", "Übersicht": "Overview", "Rundgang": "Tour", "Begehen": "Walk", "Themenwelten": "Product worlds", "Lageplan": "Floor plan", "Filter aufheben ×": "Clear filter ×", "Begehen-Modus": "Walk mode", "Sie gehen in Augenhöhe durch die Halle": "You are walking through the hall at eye level", "Beenden": "Exit", "Steuerung": "Controls", "Ziehen": "Drag", " – Halle drehen": " – rotate the hall", "Scrollen": "Scroll", " – zoomen, zum Mauszeiger hin": " – zoom towards the cursor", "Rechts ziehen": "Right-drag", " oder ": " or ", " + Ziehen – verschieben": " + drag – pan", "Klick": "Click", " – Produkt öffnen · ": " – open product · ", "Doppelklick": "Double-click", " – heranzoomen": " – zoom in", " Zoom ": " Zoom ", " Produkte ": " Products ", " Begehen": " Walk", "gehen · ": "walk · ", " schneller": " faster", "drehen (auch ": "turn (also ", " – umsehen": " – look around", "Klick auf den Boden": "Click the floor", " – hingehen": " – walk there", " beendet das Begehen": " ends walk mode", "Wischen": "Swipe", "Zwei Finger spreizen": "Pinch with two fingers", " – zoomen": " – zoom", "Zwei Finger schieben": "Drag with two fingers", " – verschieben": " – pan", "Tippen": "Tap", " – Produkt öffnen": " – open product", "Tippen auf den Boden": "Tap the floor", " – vor / zurück": " – forward / back", "So bewegen Sie sich durch die Halle": "How to move through the hall", "Alle ZOLLER-Produkte stehen in sieben Themenwelten rund um den zentralen Platz mit dem ZOLLER-Symbol.": "All ZOLLER products are arranged in seven product worlds around the central plaza with the ZOLLER symbol.", "Maus": "Mouse", "Rechtsklick / ⇧ + Ziehen": "Right-click / ⇧ + drag", "Scrollen / Trackpad-Pinch": "Scroll / trackpad pinch", " – zoomen zum Mauszeiger": " – zoom towards the cursor", "Doppelklick auf den Boden": "Double-click the floor", "Klick auf Produkt": "Click a product", " – hinfliegen &amp; Details": " – fly there &amp; details", "Klick auf Schild": "Click a sign", " – Themenwelt ansteuern": " – go to product world", "Tastatur": "Keyboard", " – vorheriges / nächstes Produkt": " – previous / next product", " – Themenwelt": " – product world", " – Übersicht · ": " – overview · ", " – Rundgang": " – tour", " – Begehen · ": " – walk · ", " – Suche": " – search", " – schließen / zurück": " – close / back", " – gehen, ": " – walk, ", " – drehen": " – turn", " – dorthin gehen": " – walk there", ": tippen zum Gehen, zwei Finger vor/zurück": ": tap to walk, two fingers forward/back", "Die gelbe Linie am Boden markiert den Ausstellungsbereich – weiter hinaus geht es nicht. Jedes Produkt verlinkt auf seine Seite der ": "The yellow line on the floor marks the exhibition area – you cannot go beyond it. Every product links to its page on the ", "ZOLLER Webseite": "ZOLLER website", "Produktumgebung 3D": "3D Product World", "Showroom wird aufgebaut …": "Setting up the showroom …", "Die Produktumgebung 3D benötigt JavaScript. Alle Produkte finden Sie auf der ": "The 3D Product World requires JavaScript. You can find all products on the ", "Alle ZOLLER-Produkte in einem begehbaren 3D-Showroom – sortiert nach Themenwelten: Einstellen & Messen, Toolmanagement, Prüfen & Messen, Automation, Schrumpftechnik, Werkzeugaufnahmen und Wuchttechnik.": "All ZOLLER products in a walk-through 3D showroom – arranged by product world: presetting & measuring, tool management, inspection & measuring, automation, tool heat shrink technology, tool holders and tool balancing.", "Alle ZOLLER-Produkte in einem begehbaren 3D-Showroom, sortiert nach Themenwelten.": "All ZOLLER products in a walk-through 3D showroom, arranged by product world.", "3D-Showroom mit allen ZOLLER-Produkten": "3D showroom with all ZOLLER products", "Zurück zur ZOLLER Webseite": "Back to the ZOLLER website", "Produkt suchen …": "Search products …", "Produkt suchen": "Search products", "Welche Geräte passen zu Ihrem Werkzeugtyp?": "Which machines suit your tool type?", "Nach Werkzeugtyp filtern": "Filter by tool type", "Ansicht": "View", "Übersicht (H)": "Overview (H)", "Automatischer Rundgang (T)": "Automatic tour (T)", "Rundgang starten": "Start tour", "Halle zu Fuß begehen (G)": "Walk through the hall (G)", "Steuerung (?)": "Controls (?)", "Hilfe zur Steuerung": "Help with the controls", "Themenwelten ein-/ausklappen": "Expand/collapse product worlds", "Lageplan der Halle – klicken zum Hinfliegen": "Floor plan of the hall – click to fly there", "Vorheriges Produkt": "Previous product", "Vorheriges Produkt (←)": "Previous product (←)", "Nächstes Produkt": "Next product", "Nächstes Produkt (→)": "Next product (→)", "Schließen": "Close", "Schließen (Esc)": "Close (Esc)", "Zurück": "Back", "Pause": "Pause", "Weiter": "Next", "Rundgang beenden": "End tour", "Zoom": "Zoom", "Hineinzoomen": "Zoom in", "Hineinzoomen (+)": "Zoom in (+)", "Herauszoomen": "Zoom out", "Herauszoomen (−)": "Zoom out (−)", "Produktübersicht": "Product overview", "Produkte": "products", "Produkt": "product", "Kein Produkt gefunden": "No product found", "{0}: {1} passende Lösung leuchtet in der Halle": "{0}: {1} matching solution lights up in the hall", "{0}: {1} passende Lösungen leuchten in der Halle": "{0}: {1} matching solutions light up in the hall", "Softwarepaket": "Software package", "Zur Produktseite": "Product page", "Im Shop": "In the shop", "Anfragen": "Inquire", "Kamera zum Produkt": "Move the camera to the product", "Im Raum zeigen": "Show in the hall", "Direktlink kopieren": "Copy direct link", "Link": "Link", "Geeignet für": "Suitable for", "Auch zu finden unter": "Also found under", "Ausstattung & Merkmale": "Equipment & features", "Modelle": "Models", "Technische Daten": "Technical data", "Tabellen": "tables", "Mehr erfahren": "Learn more", "Bilder": "Images", "Weitere Seiten zum Produkt": "More pages about the product", "Alle Details auf der Produktseite:": "All details on the product page:", "Kopiert": "Copied", "Weiter abspielen": "Resume", "Weiter heraus geht es nicht – Sie sehen die ganze Halle.": "You can’t zoom out any further – you are seeing the whole hall.", "Rand der Ausstellung erreicht.": "You have reached the edge of the exhibition.", "Hier endet der Ausstellungsbereich.": "The exhibition area ends here.", "Ausgewählt": "Selected", "Klicken für Details": "Click for details", "Themenwelt ansteuern": "Go to product world", "Hier sind alle Produkte als Übersicht – ein Klick öffnet die Details.": "Here are all products as an overview – click to open the details.", "Ihr Browser unterstützt kein WebGL, daher kann der 3D-Showroom nicht angezeigt werden.": "Your browser does not support WebGL, so the 3D showroom cannot be displayed.", "Exponate werden aufgestellt …": "Setting up the exhibits …", "Der 3D-Showroom konnte nicht gestartet werden.": "The 3D showroom could not be started.", "ZOLLER  ·  PRODUKTUMGEBUNG 3D  ·  ": "ZOLLER  ·  3D PRODUCT WORLD  ·  ", "Produktseite": "Product page", "Über 2500 Werkzeugaufnahmen": "More than 2,500 tool holders", "Optional mit »idChip«": "Optionally with »idChip«", "Kompatibel zu ZOLLER TMS": "Compatible with ZOLLER TMS", "Tooling-Shop auf myzoller.com": "Tooling shop on myzoller.com", "Übersicht Werkzeugaufnahmen": "Tool holder overview", "ZOLLER Tooling Solutions: Werkzeugaufnahmen für alle gängigen Schnittstellen – optional mit »idChip« für mehr Prozesssicherheit durch aktuelle Werkzeugdaten. Kompatibel zu ZOLLER TMS Tool Management Solutions.": "ZOLLER Tooling Solutions: tool holders for all common interfaces – optionally with »idChip« for greater process reliability through up-to-date tool data. Compatible with ZOLLER TMS Tool Management Solutions."};window.ZBASE="../";</script>
+  <script type="module" src="../assets/js/main.js"></script>
+</body>
+</html>
