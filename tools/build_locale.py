@@ -101,6 +101,8 @@ class Locale:
                 self.loc2de[p["path"]] = p["de_path"]
         tr_file = folder / "translations.json"
         self.tr = json.loads(tr_file.read_text(encoding="utf-8")) if tr_file.exists() else {}
+        rep_file = folder / "replace.json"   # Ersetzungen in Texten, z. B. »génie« -> »genius«
+        self.reps = json.loads(rep_file.read_text(encoding="utf-8")) if rep_file.exists() else {}
         self.nav = json.loads((folder / "nav.json").read_text(encoding="utf-8"))
         self.files = [SRC / site["out"], SRC / "docs"]   # gespiegelte Dateien der Länderseite, sonst der deutschen
         self.copied = {}
@@ -108,7 +110,12 @@ class Locale:
     # ---------------------------------------------------------------- Hilfen
     def t(self, s):
         """Text übersetzen: unübersetzte Reste (translations.json der Webseite), sonst unverändert."""
-        return self.tr.get(s.strip(), s) if isinstance(s, str) else s
+        if not isinstance(s, str):
+            return s
+        s = self.tr.get(s.strip(), s)
+        for a, b in self.reps.items():
+            s = s.replace(a, b)
+        return s
 
     def ui(self, s):
         return UI[self.lang].get(s, s)
