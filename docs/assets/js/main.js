@@ -11,6 +11,10 @@ const isPhone = () => window.matchMedia('(max-width: 760px)').matches;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const app = $('#app');
+// Sprachfassungen (Kanada, Mexiko): Texte aus window.ZI18N (deutscher Text als Schlüssel), gemeinsame Bilder unter ZBASE
+const tr = (s, ...a) => ((window.ZI18N && window.ZI18N[s]) || s).replace(/\{(\d)\}/g, (m, i) => a[+i]);
+const BASE = window.ZBASE || '';
+const LANG = document.documentElement.lang || 'de';
 const ICON_EXT = '<svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
 const ICON_CART = '<svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M3 4h2l2.4 11h11L21 8H6.2"/></svg>';
 const ICON_MAIL = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
@@ -29,8 +33,8 @@ products.forEach((p) => {
   p._hay = norm([p.name, p.name.replace(/μ/g, 'mu'), p.name.replace(/μ/g, 'my'), p.id, p.claim, p.teaser, p.sub, catById.get(p.cat).name, p.badge, ...(p.tools || []), ...(p.models || []).map((m) => m.name)].join(' '));
   p._name = norm(p.name);
 });
-const thumb = (p) => (p.kind === 'package' ? null : `img/p/${p.id}.webp`);
-$('#stats').textContent = `${products.length} Produkte · ${categories.length} Themenwelten`;
+const thumb = (p) => (p.kind === 'package' ? null : `${BASE}img/p/${p.id}.webp`);
+$('#stats').textContent = `${products.length} ${tr('Produkte')} · ${categories.length} ${tr('Themenwelten')}`;
 
 /* ------------------------------------------------------------------ Zustand */
 const state = { selected: null, activeCat: null, openCat: null, tool: '', walk: false, tour: null };
@@ -110,7 +114,7 @@ function runSearch() {
   resultIds = scored.map((x) => x.p.id); resultIdx = scored.length ? 0 : -1;
   results.innerHTML = scored.length ? scored.map(({ p }, i) => `<li role="option" data-id="${p.id}" aria-selected="${i === 0}">
       ${thumb(p) ? `<img src="${thumb(p)}" alt="">` : '<img alt="">'}<div><div class="r-name">${esc(p.name)}</div><div class="r-meta">${esc(catById.get(p.cat).name)} · ${esc(p.sub)}</div></div></li>`).join('')
-    : '<li class="r-empty">Kein Produkt gefunden</li>';
+    : `<li class="r-empty">${tr('Kein Produkt gefunden')}</li>`;
   results.hidden = false; search.setAttribute('aria-expanded', 'true');
 }
 search.addEventListener('input', runSearch);
@@ -134,7 +138,7 @@ function closeSearch() { search.value = ''; results.hidden = true; resultIds = [
 
 /* ------------------------------------------------------------------ Werkzeugtyp-Filter */
 const toolSel = $('#tooltype');
-toolSel.insertAdjacentHTML('beforeend', data.toolTypes.slice().sort((a, b) => a.localeCompare(b, 'de')).map((t) => `<option>${esc(t)}</option>`).join(''));
+toolSel.insertAdjacentHTML('beforeend', data.toolTypes.slice().sort((a, b) => a.localeCompare(b, LANG)).map((t) => `<option>${esc(t)}</option>`).join(''));
 toolSel.addEventListener('change', () => setTool(toolSel.value));
 $('#filter-clear').addEventListener('click', () => setTool(''));
 function setTool(tool) {
@@ -146,7 +150,7 @@ function setTool(tool) {
   const bar = $('#filterbar');
   bar.hidden = !tool;
   if (tool) {
-    $('#filter-text').textContent = `${tool}: ${ids.length} passende ${ids.length === 1 ? 'Lösung' : 'Lösungen'} leuchten in der Halle`;
+    $('#filter-text').textContent = tr(ids.length === 1 ? '{0}: {1} passende Lösung leuchtet in der Halle' : '{0}: {1} passende Lösungen leuchten in der Halle', tool, ids.length);
     stopTour();
     if (state.selected) closePanel();
     world?.overview();
@@ -159,31 +163,31 @@ const panel = $('#panel'), panelBody = $('#panel-body');
 function productHTML(p) {
   const c = catById.get(p.cat);
   const hero = p.kind === 'package'
-    ? `<div class="p-hero is-package"><div class="p-pkg" style="background:${{ STARTER: '#fff', BRONZE: 'linear-gradient(135deg,#f1c39b,#a8673a)', SILVER: 'linear-gradient(135deg,#fafbfc,#a7aeb5)', GOLD: 'linear-gradient(135deg,#fff3a6,#cfa92c)' }[p.tier]}"><div><small>TMS</small><span>${esc(p.tier)}</span><small>Softwarepaket</small></div></div></div>`
-    : `<div class="p-hero"><img src="${esc(p.header || `img/hd/${p.id}.webp`)}" alt="${esc(p.name.replace(/­/g, ''))}" decoding="async"></div>`;
+    ? `<div class="p-hero is-package"><div class="p-pkg" style="background:${{ STARTER: '#fff', BRONZE: 'linear-gradient(135deg,#f1c39b,#a8673a)', SILVER: 'linear-gradient(135deg,#fafbfc,#a7aeb5)', GOLD: 'linear-gradient(135deg,#fff3a6,#cfa92c)' }[p.tier]}"><div><small>TMS</small><span>${esc(p.tier)}</span><small>${tr('Softwarepaket')}</small></div></div></div>`
+    : `<div class="p-hero"><img src="${esc(BASE + (p.header || `img/hd/${p.id}.webp`))}" alt=""${esc(p.name.replace(/­/g, ''))}" decoding="async"></div>`;
   const intro = (p.intro || []).filter((t) => t && t !== p.claim).map((t) => `<p>${esc(t)}</p>`).join('');
   const hl = p.highlights?.length ? `<ul class="p-hl">${p.highlights.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : '';
   const cta = `<div class="p-cta">
-      <a class="btn btn--primary" href="${esc(p.url)}">Zur Produktseite ${ICON_EXT}</a>
-      ${p.shop ? `<a class="btn" href="${esc(p.shop)}" target="_blank" rel="noopener">Im Shop ${ICON_CART}</a>` : ''}
-      <a class="btn btn--dark" href="${esc(SITE)}unternehmen/kontakt/">Anfragen ${ICON_MAIL}</a>
-      <button type="button" class="btn" data-act="show" title="Kamera zum Produkt">${ICON_EYE} Im Raum zeigen</button>
-      <button type="button" class="btn" data-act="copy" title="Direktlink kopieren">${ICON_LINK} Link</button>
+      <a class="btn btn--primary" href="${esc(p.url)}">${tr('Zur Produktseite')} ${ICON_EXT}</a>
+      ${p.shop ? `<a class="btn" href="${esc(p.shop)}" target="_blank" rel="noopener">${tr('Im Shop')} ${ICON_CART}</a>` : ''}
+      <a class="btn btn--dark" href="${esc(data.contact || `${SITE}unternehmen/kontakt/`)}">${tr('Anfragen')} ${ICON_MAIL}</a>
+      <button type="button" class="btn" data-act="show" title="${tr('Kamera zum Produkt')}">${ICON_EYE} ${tr('Im Raum zeigen')}</button>
+      <button type="button" class="btn" data-act="copy" title="${tr('Direktlink kopieren')}">${ICON_LINK} ${tr('Link')}</button>
     </div>`;
-  const tools = p.tools?.length ? `<div class="p-tags"><h4>Geeignet für</h4><div>${p.tools.map((t) => `<button type="button" data-tool="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>` : '';
-  const also = p.also?.length ? `<div class="p-also"><h4>Auch zu finden unter</h4>${p.also.map((a) => `${esc(catById.get(a.cat).name)} › ${esc(a.sub)}`).join('<br>')}</div>` : '';
+  const tools = p.tools?.length ? `<div class="p-tags"><h4>${tr('Geeignet für')}</h4><div>${p.tools.map((t) => `<button type="button" data-tool="${esc(t)}">${esc(t)}</button>`).join('')}</div></div>` : '';
+  const also = p.also?.length ? `<div class="p-also"><h4>${tr('Auch zu finden unter')}</h4>${p.also.map((a) => `${esc(catById.get(a.cat).name)} › ${esc(a.sub)}`).join('<br>')}</div>` : '';
 
   const acc = [];
-  if (p.features?.length) acc.push(['Ausstattung & Merkmale', p.features.length, p.features.map((f) => `<div class="feat"><b>${esc(f.title)}</b>${esc(f.text)}</div>`).join(''), true]);
-  if (p.models?.length) acc.push(['Modelle', p.models.length, `<div class="models">${p.models.map((m) => {
-    const inner = `${m.img ? `<img src="${esc(m.img)}" alt="" loading="lazy">` : ''}<div><b>${esc(m.name)}</b>${m.text ? `<span>${esc(m.text)}</span>` : ''}</div>`;
+  if (p.features?.length) acc.push([tr('Ausstattung & Merkmale'), p.features.length, p.features.map((f) => `<div class="feat"><b>${esc(f.title)}</b>${esc(f.text)}</div>`).join(''), true]);
+  if (p.models?.length) acc.push([tr('Modelle'), p.models.length, `<div class="models">${p.models.map((m) => {
+    const inner = `${m.img ? `<img src="${esc(BASE + m.img)}" alt="" loading="lazy">` : ''}<div><b>${esc(m.name)}</b>${m.text ? `<span>${esc(m.text)}</span>` : ''}</div>`;
     return m.href ? `<a class="model" href="${esc(m.href)}">${inner}</a>` : `<div class="model">${inner}</div>`;
   }).join('')}</div>`, !p.features?.length]);
-  if (p.specs?.length) acc.push(['Technische Daten', p.specs.length > 1 ? `${p.specs.length} Tabellen` : '', p.specs.map((s) => `<div class="spec">${s.title ? `<h5>${esc(s.title)}</h5>` : ''}<table>${s.rows.map((r) => `<tr>${r.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</table></div>`).join(''), false]);
-  if (p.sections?.length) acc.push(['Mehr erfahren', '', p.sections.map((s) => `<div class="sect"><h5>${esc(s.title)}</h5>${s.text.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`).join(''), false]);
+  if (p.specs?.length) acc.push([tr('Technische Daten'), p.specs.length > 1 ? `${p.specs.length} ${tr('Tabellen')}` : '', p.specs.map((s) => `<div class="spec">${s.title ? `<h5>${esc(s.title)}</h5>` : ''}<table>${s.rows.map((r) => `<tr>${r.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</table></div>`).join(''), false]);
+  if (p.sections?.length) acc.push([tr('Mehr erfahren'), '', p.sections.map((s) => `<div class="sect"><h5>${esc(s.title)}</h5>${s.text.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`).join(''), false]);
   const gal = (p.gallery || []).filter((g) => g.src && g.src !== p.header);
-  if (gal.length) acc.push(['Bilder', gal.length, `<div class="gallery">${gal.map((g) => `<figure><img src="${esc(g.src)}" alt="${esc(g.title || g.text || p.name)}" loading="lazy" data-cap="${esc([g.title, g.text].filter(Boolean).join(' – '))}">${g.title || g.text ? `<figcaption>${g.title ? `<b>${esc(g.title)}</b>` : ''}${esc(g.text)}</figcaption>` : ''}</figure>`).join('')}</div>`, false]);
-  if (p.links?.length) acc.push(['Weitere Seiten zum Produkt', p.links.length, `<ul class="links">${p.links.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join('')}</ul>`, false]);
+  if (gal.length) acc.push([tr('Bilder'), gal.length, `<div class="gallery">${gal.map((g) => `<figure><img src="${esc(BASE + g.src)}" alt="${esc(g.title || g.text || p.name)}" loading="lazy" data-cap="${esc([g.title, g.text].filter(Boolean).join(' – '))}">${g.title || g.text ? `<figcaption>${g.title ? `<b>${esc(g.title)}</b>` : ''}${esc(g.text)}</figcaption>` : ''}</figure>`).join('')}</div>`, false]);
+  if (p.links?.length) acc.push([tr('Weitere Seiten zum Produkt'), p.links.length, `<ul class="links">${p.links.map((l) => `<li><a href="${esc(l.href)}">${esc(l.label)}</a></li>`).join('')}</ul>`, false]);
 
   return `${hero}
     <div class="p-head">
@@ -194,7 +198,7 @@ function productHTML(p) {
     <div class="p-body">${p.teaser && p.teaser !== p.claim ? `<p>${esc(p.teaser)}</p>` : ''}${intro}${hl}</div>
     ${cta}${tools}${also}
     <div class="p-acc">${acc.map(([t, n, body, open]) => `<details class="acc"${open ? ' open' : ''}><summary>${esc(t)}${n ? `<small>${esc(n)}</small>` : ''}</summary><div class="acc__body">${body}</div></details>`).join('')}</div>
-    <p class="p-source">Alle Details auf der Produktseite: <a href="${esc(p.url)}">${esc(p.name.replace(/\u00ad/g, ''))}</a></p>`;
+    <p class="p-source">${tr('Alle Details auf der Produktseite:')} <a href="${esc(p.url)}">${esc(p.name.replace(/\u00ad/g, ''))}</a></p>`;
 }
 
 function openPanel(p) {
@@ -231,7 +235,7 @@ panelBody.addEventListener('click', (e) => {
   if (act?.dataset.act === 'show' && state.selected) { world?.focus(state.selected); if (isPhone()) closePanel({ keepSelection: true }); return; }
   if (act?.dataset.act === 'copy') {
     const url = `${location.origin}${location.pathname}#produkt/${state.selected}`;
-    navigator.clipboard?.writeText(url).then(() => { act.lastChild.textContent = ' Kopiert'; setTimeout(() => { act.lastChild.textContent = ' Link'; }, 1600); }).catch(() => {});
+    navigator.clipboard?.writeText(url).then(() => { act.lastChild.textContent = ` ${tr('Kopiert')}`; setTimeout(() => { act.lastChild.textContent = ` ${tr('Link')}`; }, 1600); }).catch(() => {});
     return;
   }
   const img = e.target.closest('.gallery img');
@@ -314,7 +318,7 @@ function tourGo() {
     if (state.selected) closePanel();
     goSector(s.id, { fromTour: true });
     const c = catById.get(s.id);
-    $('#tour-now').innerHTML = `${pad2(c.index + 1)} ${esc(c.name)}<small>${c.count} Produkte</small>`;
+    $('#tour-now').innerHTML = `${pad2(c.index + 1)} ${esc(c.name)}<small>${c.count} ${tr('Produkte')}</small>`;
   } else {
     const p = byId.get(s.id);
     selectProduct(s.id, { fromTour: true });
@@ -328,7 +332,7 @@ function updateTourBar() {
   const frac = (T.i + Math.min(1, T.t / (s.dwell + 2))) / T.steps.length;
   $('#tour-progress').style.width = `${(frac * 100).toFixed(2)}%`;
   $('#tour-play').innerHTML = T.playing ? '<svg viewBox="0 0 24 24"><path d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-  $('#tour-play').setAttribute('aria-label', T.playing ? 'Pause' : 'Weiter abspielen');
+  $('#tour-play').setAttribute('aria-label', T.playing ? tr('Pause') : tr('Weiter abspielen'));
 }
 function tourTick(dt) {
   const T = state.tour; if (!T || !T.playing) return;
@@ -413,9 +417,9 @@ function showToast(text) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('is-on'), 2400);
 }
 const LIMIT_TEXT = {
-  zoom: 'Weiter heraus geht es nicht – Sie sehen die ganze Halle.',
-  pan: 'Rand der Ausstellung erreicht.',
-  walk: 'Hier endet der Ausstellungsbereich.',
+  zoom: tr('Weiter heraus geht es nicht – Sie sehen die ganze Halle.'),
+  pan: tr('Rand der Ausstellung erreicht.'),
+  walk: tr('Hier endet der Ausstellungsbereich.'),
 };
 
 /* ------------------------------------------------------------------ Tooltip */
@@ -424,10 +428,10 @@ function showTooltip(id, pt, sec) {
   if ((!id && !sec) || !pt || state.walk && !id) { tooltip.classList.remove('is-on'); return; }
   if (id) {
     const p = byId.get(id);
-    tooltip.innerHTML = `<b>${esc(p.name)}</b><span>${esc(p.claim || p.teaser || p.sub)}</span><em>${id === state.selected ? 'Ausgewählt' : 'Klicken für Details'}</em>`;
+    tooltip.innerHTML = `<b>${esc(p.name)}</b><span>${esc(p.claim || p.teaser || p.sub)}</span><em>${id === state.selected ? tr('Ausgewählt') : tr('Klicken für Details')}</em>`;
   } else {
     const c = catById.get(sec);
-    tooltip.innerHTML = `<b>${pad2(c.index + 1)} ${esc(c.name)}</b><span>${esc(c.text)}</span><em>Themenwelt ansteuern</em>`;
+    tooltip.innerHTML = `<b>${pad2(c.index + 1)} ${esc(c.name)}</b><span>${esc(c.text)}</span><em>${tr('Themenwelt ansteuern')}</em>`;
   }
   tooltip.style.left = `${pt.x}px`; tooltip.style.top = `${pt.y}px`;
   tooltip.classList.add('is-on');
@@ -513,7 +517,7 @@ function showFallback(reason) {
   $('#btn-tour').hidden = true; $('#btn-walk').hidden = true;
   const fb = $('#fallback');
   fb.hidden = false;
-  fb.innerHTML = `<p class="fallback__note">${esc(reason)} Hier sind alle Produkte als Übersicht – ein Klick öffnet die Details.</p>` + categories.map((c, i) => `<h2><span>${pad2(i + 1)}</span>${esc(c.name)}</h2><div class="fallback__grid">${ordered.filter((p) => p.cat === c.id).map((p) => `<button type="button" data-id="${p.id}">${thumb(p) ? `<img src="${thumb(p)}" alt="" loading="lazy">` : ''}<b>${esc(p.name)}</b><span>${esc(p.claim || p.sub)}</span></button>`).join('')}</div>`).join('');
+  fb.innerHTML = `<p class="fallback__note">${esc(reason)} ${tr('Hier sind alle Produkte als Übersicht – ein Klick öffnet die Details.')}</p>` + categories.map((c, i) => `<h2><span>${pad2(i + 1)}</span>${esc(c.name)}</h2><div class="fallback__grid">${ordered.filter((p) => p.cat === c.id).map((p) => `<button type="button" data-id="${p.id}">${thumb(p) ? `<img src="${thumb(p)}" alt="" loading="lazy">` : ''}<b>${esc(p.name)}</b><span>${esc(p.claim || p.sub)}</span></button>`).join('')}</div>`).join('');
   fb.addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (b) selectProduct(b.dataset.id); });
 }
 
@@ -524,7 +528,7 @@ function hasWebGL() {
 
 const loaderBar = $('#loader-bar'), loaderText = $('#loader-text');
 async function boot() {
-  if (!hasWebGL()) { showFallback('Ihr Browser unterstützt kein WebGL, daher kann der 3D-Showroom nicht angezeigt werden.'); return; }
+  if (!hasWebGL()) { showFallback(tr('Ihr Browser unterstützt kein WebGL, daher kann der 3D-Showroom nicht angezeigt werden.')); return; }
   try {
     await Promise.race([
       Promise.all(['400', '500', '700', '800'].map((w) => document.fonts.load(`${w} 40px "T-Star"`))),
@@ -533,8 +537,8 @@ async function boot() {
   } catch { /* Schrift-Fallback */ }
   const { createWorld } = await import('./world.js');
   world = await createWorld($('#scene'), data, {
-    mobile: isPhone(),
-    onProgress: (f) => { loaderBar.style.width = `${Math.round(f * 100)}%`; loaderText.textContent = `Exponate werden aufgestellt … ${Math.round(f * 100)} %`; },
+    mobile: isPhone(), base: BASE,
+    onProgress: (f) => { loaderBar.style.width = `${Math.round(f * 100)}%`; loaderText.textContent = `${tr('Exponate werden aufgestellt …')} ${Math.round(f * 100)} %`; },
   });
 
   world.on('select', (id) => { if (id === state.selected && panel.classList.contains('is-open')) { world.focus(id); return; } selectProduct(id); });
@@ -582,5 +586,5 @@ async function boot() {
 
 boot().catch((err) => {
   console.error(err);
-  showFallback('Der 3D-Showroom konnte nicht gestartet werden.');
+  showFallback(tr('Der 3D-Showroom konnte nicht gestartet werden.'));
 });

@@ -70,3 +70,13 @@ python3 -m venv .venv && .venv/bin/pip install pillow numpy
 - Texte, Produktbilder, Logo und Schrift T-Star gehören der E. Zoller GmbH & Co. KG. Jedes Produkt verlinkt auf seine Seite der ZOLLER Webseite.
 - `world.js` läuft auch auf der Startseite der Webseite (Kino-Modus `cinematic: true`, Kamera per `setProgress()`); `tools/sync_showroom.py` dort übernimmt die Datei.
 - Keine Tracker, keine Cookies, keine externen Abhängigkeiten zur Laufzeit (Three.js liegt lokal unter `docs/assets/vendor/`).
+
+## Sprachfassungen für die Länderseiten
+
+Für die Länderseiten der ZOLLER Webseite gibt es den Showroom auch auf Englisch (Kanada), Französisch (Kanada) und Spanisch (Mexiko):
+`/en-ca/`, `/fr-ca/`, `/es-mx/`. Aufbau der Halle und Produktbilder sind dieselben wie in der deutschen Fassung; alle Texte stammen aus den Produktseiten des jeweiligen Landes (`zoller-webseite/content/sites/…`), die Oberfläche aus `tools/i18n.json`.
+
+```bash
+python3 tools/build.py          # deutsche Fassung (Pillow + numpy)
+python3 tools/build_locale.py   # Sprachfassungen (nur Standardbibliothek)
+```
