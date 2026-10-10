@@ -69,6 +69,7 @@ python3 -m venv .venv && .venv/bin/pip install pillow numpy
 
 - Texte, Produktbilder, Logo und Schrift T-Star gehören der E. Zoller GmbH & Co. KG. Jedes Produkt verlinkt auf seine Seite der ZOLLER Webseite.
 - `world.js` läuft auch auf der Startseite der Webseite (Kino-Modus `cinematic: true`, Kamera per `setProgress()`); `tools/sync_showroom.py` dort übernimmt die Datei.
+- Flüssigkeit: Die Halle baut sich in Portionen auf (Shader per `compileAsync`, Texturen über mehrere Frames), die Renderauflösung passt sich der Bildrate an (`adapt()`), im Kino-Modus läuft sie auf Retina-Displays ohne MSAA und rendert bei stehender Kamera nur jedes zweite Bild.
 - Keine Tracker, keine Cookies, keine externen Abhängigkeiten zur Laufzeit (Three.js liegt lokal unter `docs/assets/vendor/`).
 
 ## Sprachfassungen für die Länderseiten
